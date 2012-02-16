@@ -391,6 +391,8 @@ char *yytext;
 	
 	#define YY_MAIN 1
 
+	#define DEBUG_MODE 1
+
 	#define LT 0
 	#define LE 1
 	#define EQ 2
@@ -407,7 +409,7 @@ char *yytext;
 	
 	int yylval;
 /* regular definitions */
-#line 411 "lex.yy.c"
+#line 413 "lex.yy.c"
 
 /* Macros after this point can all be overridden by user definitions in
  * section 1.
@@ -569,10 +571,10 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
 
-#line 33 "example.l"
+#line 35 "example.l"
 
 
-#line 576 "lex.yy.c"
+#line 578 "lex.yy.c"
 
 	if ( yy_init )
 		{
@@ -657,70 +659,70 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 35 "example.l"
+#line 37 "example.l"
 {/* no action and no return */}
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 36 "example.l"
+#line 38 "example.l"
 {return(IF);}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 37 "example.l"
+#line 39 "example.l"
 {return(THEN);}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 38 "example.l"
+#line 40 "example.l"
 {return(ELSE);}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 39 "example.l"
+#line 41 "example.l"
 {yylval = (int)installID(); return(ID);}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 40 "example.l"
+#line 42 "example.l"
 {yylval = (int)installNum(); return(NUMBER);}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 41 "example.l"
-{yylval = LT; return(RELOP);}
+#line 43 "example.l"
+{yylval = LT; if (DEBUG_MODE) printf("\nLT\n"); return(RELOP);}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 42 "example.l"
+#line 44 "example.l"
 {yylval = LE; return(RELOP);}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 43 "example.l"
+#line 45 "example.l"
 {yylval = EQ; return(RELOP);}
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 44 "example.l"
+#line 46 "example.l"
 {yylval = NE; return(RELOP);}
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 45 "example.l"
+#line 47 "example.l"
 {yylval = GT; return(RELOP);}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 46 "example.l"
+#line 48 "example.l"
 {yylval = GE; return(RELOP);}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 48 "example.l"
+#line 50 "example.l"
 ECHO;
 	YY_BREAK
-#line 724 "lex.yy.c"
+#line 726 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1610,18 +1612,20 @@ int main()
 	return 0;
 	}
 #endif
-#line 48 "example.l"
+#line 50 "example.l"
 
+
+/* function to install the lexeme, whose first character is pointed to by yytext, and whose length is yyleng, into the symbol table and return a pointer thereto*/
 
 int installID(void){
-	/* function to install the lexeme, whose first character is pointed to by yytext, and whose length is yyleng, into the symbol table and return a
-	pointer thereto*/
 	printf("\ninstallID\n");
 	return 0;
 }
 
+
+/* similar to installID, but puts numerical constants into a separate table */
+
 int installNum(void){
-	/* similar to installID, but puts numerical constants into a separate table */
 	printf("\ninstallNum\n");
 	return 0;
 }
