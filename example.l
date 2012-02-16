@@ -1,5 +1,10 @@
+%{
+	/* definitions of manifest constants
+	LT, LE, EQ, NE, GT, GE,
+	IF, THEN, ELSE, ID, NUMBER, RELOP */
+	
+	#define YY_MAIN 1
 
-	/* definitions of manifest constants*/
 	#define LT 0
 	#define LE 1
 	#define EQ 2
@@ -7,11 +12,15 @@
 	#define GT 4
 	#define GE 5
 	#define IF 6
-	#define THEN 6
-	#define ELSE 7
-	#define ID 8
-	#define NUMBER 9
-	#define RELOP 10
+	#define THEN 7
+	#define ELSE 8
+	#define ID 9
+	#define NUMBER 10
+	#define RELOP 11
+
+	
+	int yylval;
+%}
 
 /* regular definitions */
 delim	 [ \t\n]
@@ -24,17 +33,17 @@ number	 {digit}+(\.{digit}+)?(E[+-]?{digit}+)?
 %%
 
 {ws}	 {/* no action and no return */}
-if	 {return(1F);}
+if	 {return(IF);}
 then	 {return(THEN);}
 else	 {return(ELSE);}
-{id}	 {yylval = (int)installID(); return(1D);}
+{id}	 {yylval = (int)installID(); return(ID);}
 {number}	 {yylval = (int)installNum(); return(NUMBER);}
-"<"	 {yylval = LT; return(REL0P);}
-"<="	 {yylval = LE; return(REL0P);}
-"="	 {yylval = EQ; return(REL0P);}
-"<>"	 {yylval = NE; return(REL0P);}
-">"	 {yylval = GT; return(REL0P);}
-">="	 {yylval = GE; return(REL0P);}
+"<"	 {yylval = LT; return(RELOP);}
+"<="	 {yylval = LE; return(RELOP);}
+"="	 {yylval = EQ; return(RELOP);}
+"<>"	 {yylval = NE; return(RELOP);}
+">"	 {yylval = GT; return(RELOP);}
+">="	 {yylval = GE; return(RELOP);}
 
 %%
 
@@ -48,5 +57,10 @@ int installID(void){
 int installNum(void){
 	/* similar to installID, but puts numerical constants into a separate table */
 	printf("\ninstallNum\n");
+	return 0;
+}
+
+int yywrap(void){
+	printf("\nDone!\n");
 	return 0;
 }
