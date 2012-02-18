@@ -2,16 +2,15 @@
 /* necessary definitions */
 
 #include <iostream>
+#include <iomanip>
 #include <map>   //data structure for symbol table
 #include <string>
-#define YY_DECL int yylex(std::map<std::string, std::string> & symt)
+#define YY_DECL int yylex(std::map<std::string, int> & symt)
 #define YY_MAIN 0
 #define YY_SKIP_YYWRAP 1
 
 int yywrap(void);
 %}
-
-
 
 
 /* regex definitions */
@@ -22,7 +21,6 @@ WS	[\x09\x0A\x0B\x0C\x0D\x20]+
 
 
 /* WARNING: GREEDY MATCHING REQUIRED*/
-
 
 COMMENT	\{(.|{WS})*\}
 
@@ -119,7 +117,7 @@ program	{std::cout<<"program\t\t< KEYWORD, PROGRAM >\n";}
 record	{std::cout<<"record\t\t< KEYWORD, RECORD >\n";}
 
 
-then	{printf("then\t\t< KEYWORD, THEN >\n");}
+then	{std::cout<<"then\t\t< KEYWORD, THEN >\n";}
 
 
 to	{std::cout<<"to\t\t< KEYWORD, TO >\n";}
@@ -134,7 +132,7 @@ var	{std::cout<<"var\t\t< KEYWORD, VAR >\n";}
 while	{std::cout<<"while\t\t< KEYWORD, WHILE >\n";}
 
 
-{ID}	{std::cout<<yytext_ptr<<"\t\t< IDENTIFIER, \""<<yytext_ptr<<"\" >\n";}
+{ID}	{std::string str(yytext_ptr); std::cout<<yytext_ptr<<"\t\t< IDENTIFIER, \""<<yytext_ptr<<"\" >\n"; if (symt.find(str) == symt.end()) { symt[str] = symt.size(); }}
 
 
 {INT}	{std::cout<<yytext_ptr<<"\t\t< INTEGER, \""<<yytext_ptr<<"\" >\n";}
@@ -160,13 +158,16 @@ while	{std::cout<<"while\t\t< KEYWORD, WHILE >\n";}
 /* functions */
 
 int yywrap(void){
-	printf("\nDone!\n");
-	exit(0);
+	return 1;
 }
 
 int main(void){
-	std::map<std::string, std::string> symt;
+	std::map<std::string, int> symt;
 	yylex(symt);
+	std::cout<<"Content of the symbol table: \n\n";
+	std::cout<<"Name"<<std::setw(16)<<"Location\n";
+	for (std::map<std::string, int>::iterator itr = symt.begin(); itr != symt.end(); ++itr){
+		std::cout<<itr->first<<std::setw(16)<<itr->second<<"\n";
+	}
 	return 0;
 }
-                                
