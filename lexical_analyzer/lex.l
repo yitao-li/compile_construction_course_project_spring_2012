@@ -9,14 +9,21 @@
 
 /* regex definitions */
 
-WS	[ \t\n]+
+COMMENT \{.*\}
+
+/*can \r by itself be an EOL character?? (i.e. overprint the current line...)*/
+
+WS	[ \t\n\r\f\v\x03\x04\x0A\x0B\x0C\x1C\x1D\x1E\x1F]+
 
 
 /* semantic actions */
 
 %%
 
-{WS}	{printf("white space\n");}
+{COMMENT}	{printf("COMMENT\n");}
+
+{WS}	{/* printf("WHITE SPACE\n"); */}
+
 
 %%
 
