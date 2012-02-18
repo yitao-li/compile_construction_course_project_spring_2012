@@ -10,26 +10,34 @@
 
 /* regex definitions */
 
-/* WARNING: ASCII WHITESPACE CHARS ONLY (UNICODE ONES ARE NOT SUPPORTED) */
+/* WARNING: ASCII WHITESPACE CHARS ONLY (UNICODE ONES NOT INCLUDED) */
 
 WS	[\x09\x0A\x0B\x0C\x0D\x20]+
 
 
 /* WARNING: GREEDY MATCHING REQUIRED*/
 
-COMMENT \{(.|{WS})*\}
+COMMENT	\{(.|{WS})*\}
 
+
+LETTER	[A-Za-z]
+
+
+DIGIT	[0-9]
+
+
+ID	{LETTER}(LETTER|DIGIT|_)*
 
 
 /* semantic actions */
 
 %%
 
-{COMMENT}	{/*printf("COMMENT\n");*/}
+{COMMENT}	{printf("COMMENT\n");}
 
-{WS}	{/*printf("WHITE SPACE\n");*/}
+{WS}	{printf("WHITE SPACE\n");}
 
-
+{ID}	{printf("IDENTIFIER\n");}
 %%
 
 /* functions */
