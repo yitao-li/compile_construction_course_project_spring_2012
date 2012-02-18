@@ -81,7 +81,7 @@ do	{std::cout<<"do\t\t< KEYWORD, DO >\n";}
 else	{std::cout<<"else\t\t< KEYWORD, ELSE >\n";}
 
 
-end	{std::cout<<"end\t\t< KEYWORD, ELSE >\n";}
+end	{std::cout<<"end\t\t< KEYWORD, END >\n";}
 
 
 for	{std::cout<<"for\t\t< KEYWORD, FOR >\n";}
