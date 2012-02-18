@@ -1,9 +1,14 @@
 %{
 /* necessary definitions */
 
-#define YY_MAIN 1
+#include <iostream>
+#include <map>   //data structure for symbol table
+#include <string>
+#define YY_DECL int yylex(std::map<std::string, std::string> & symt)
+#define YY_MAIN 0
 #define YY_SKIP_YYWRAP 1
 
+int yywrap(void);
 %}
 
 
@@ -17,6 +22,7 @@ WS	[\x09\x0A\x0B\x0C\x0D\x20]+
 
 
 /* WARNING: GREEDY MATCHING REQUIRED*/
+
 
 COMMENT	\{(.|{WS})*\}
 
@@ -53,96 +59,97 @@ SYM	[\.,:;\(\)\[\]]
 
 %%
 
-{COMMENT}	{printf("COMMENT\n");}
+{COMMENT}	{/* std::cout<<"COMMENT\n"; */}
 
 
-{WS}	{printf("WHITE SPACE\n");}
-
-and	{printf("AND\n");}
+{WS}	{/* std::cout<<"WHITE SPACE\n"; */}
 
 
-begin	{}
+and	{std::cout<<"and\t\t< KEYWORD, AND >\n";}
 
 
-forward	{}
+begin	{std::cout<<"begin\t\t< KEYWORD, BEGIN >\n";}
 
 
-div	{}
+forward	{std::cout<<"forward\t\t< KEYWORD, FORWARD >\n";}
 
 
-do	{}
+div	{std::cout<<"div\t\t< KEYWORD, DIV >\n";}
 
 
-else	{}
+do	{std::cout<<"do\t\t< KEYWORD, DO >\n";}
 
 
-end	{}
+else	{std::cout<<"else\t\t< KEYWORD, ELSE >\n";}
 
 
-for	{}
+end	{std::cout<<"end\t\t< KEYWORD, ELSE >\n";}
 
 
-function	{}
+for	{std::cout<<"for\t\t< KEYWORD, FOR >\n";}
 
 
-if	{}
+function	{std::cout<<"function\t\t< KEYWORD, FUNCTION >\n";}
 
 
-array
+if	{std::cout<<"if\t\t< KEYWORD, IF >\n";}
 
 
-mod	{}
+array	{std::cout<<"array\t\t< KEYWORD, ARRAY >\n";}
 
 
-not	{}
+mod	{std::cout<<"mod\t\t< KEYWORD, MOD >\n";}
 
 
-of	{}
+not	{std::cout<<"not\t\t< KEYWORD, NOT >\n";}
 
 
-or	{}
+of	{std::cout<<"of\t\t< KEYWORD, OF >\n";}
 
 
-procedure	{}
+or	{std::cout<<"or\t\t< KEYWORD, OR >\n";}
 
 
-program	{}
+procedure	{std::cout<<"procedure\t\t< KEYWORD, PROCEDURE >\n";}
 
 
-record	{}
+program	{std::cout<<"program\t\t< KEYWORD, PROGRAM >\n";}
 
 
-then	{}
+record	{std::cout<<"record\t\t< KEYWORD, RECORD >\n";}
 
 
-to	{}
+then	{printf("then\t\t< KEYWORD, THEN >\n");}
 
 
-type	{}
+to	{std::cout<<"to\t\t< KEYWORD, TO >\n";}
 
 
-var	{}
+type	{std::cout<<"type\t\t< KEYWORD, TYPE >\n";}
 
 
-while	{}
+var	{std::cout<<"var\t\t< KEYWORD, VAR >\n";}
 
 
-{ID}	{printf("IDENTIFIER\n");}
+while	{std::cout<<"while\t\t< KEYWORD, WHILE >\n";}
 
 
-{INT}	{printf("INTEGER\n");}
+{ID}	{std::cout<<yytext_ptr<<"\t\t< IDENTIFIER, \""<<yytext_ptr<<"\" >\n";}
 
 
-{STR}	{printf("STRING\n");}
+{INT}	{std::cout<<yytext_ptr<<"\t\t< INTEGER, \""<<yytext_ptr<<"\" >\n";}
 
 
-{RELOP}	{printf("RELATIONAL OPERATOR\n");}
+{STR}	{std::cout<<yytext_ptr<<"\t\t< STRING, \""<<yytext_ptr<<"\" >\n";}
 
 
-{ARITHMOP}	{printf("ARITHMETIC OPERATOR\n");}
+{RELOP}	{std::cout<<yytext_ptr<<"\t\t< RELATIONAL_OPERATOR, \""<<yytext_ptr<<"\" >\n";}
 
 
-{SYM}	{printf("SYMBOL\n");}
+{ARITHMOP}	{std::cout<<yytext_ptr<<"\t\t< ARITHEMATIC_OPERATOR, \""<<yytext_ptr<<"\" >\n";}
+
+
+{SYM}	{std::cout<<yytext_ptr<<"\t\t< SYMBOL, \""<<yytext_ptr<<"\" >\n";}
 
 
 %%
@@ -153,6 +160,13 @@ while	{}
 /* functions */
 
 int yywrap(void){
-	printf("Done!\n");
+	printf("\nDone!\n");
 	exit(0);
 }
+
+int main(void){
+	std::map<std::string, std::string> symt;
+	yylex(symt);
+	return 0;
+}
+                                
