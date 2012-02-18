@@ -7,22 +7,27 @@
 
 %}
 
+
 /* regex definitions */
 
-COMMENT \{.*\}
+/* WARNING: ASCII WHITESPACE CHARS ONLY (UNICODE ONES ARE NOT SUPPORTED) */
 
-/*can \r by itself be an EOL character?? (i.e. overprint the current line...)*/
+WS	[\x09\x0A\x0B\x0C\x0D\x20]+
 
-WS	[ \t\n\r\f\v\x03\x04\x0A\x0B\x0C\x1C\x1D\x1E\x1F]+
+
+/* WARNING: GREEDY MATCHING REQUIRED*/
+
+COMMENT \{(.|{WS})*\}
+
 
 
 /* semantic actions */
 
 %%
 
-{COMMENT}	{printf("COMMENT\n");}
+{COMMENT}	{/*printf("COMMENT\n");*/}
 
-{WS}	{/* printf("WHITE SPACE\n"); */}
+{WS}	{/*printf("WHITE SPACE\n");*/}
 
 
 %%
@@ -30,6 +35,6 @@ WS	[ \t\n\r\f\v\x03\x04\x0A\x0B\x0C\x1C\x1D\x1E\x1F]+
 /* functions */
 
 int yywrap(void){
-	printf("Done!\n");
+	//printf("Done!\n");
 	return 1;
 }
