@@ -1,11 +1,12 @@
 %{
-
 /* necessary definitions */
 
 #define YY_MAIN 1
 #define YY_SKIP_YYWRAP 1
 
 %}
+
+
 
 
 /* regex definitions */
@@ -29,16 +30,33 @@ DIGIT	[0-9]
 ID	{LETTER}(LETTER|DIGIT|_)*
 
 
+/* WARNING: STRING MUST CONSIST OF PRINTING CHARACTER(S) */
+
+STR	\"[^\"]*\"
+
+
+
+
 /* semantic actions */
 
 %%
 
 {COMMENT}	{printf("COMMENT\n");}
 
+
 {WS}	{printf("WHITE SPACE\n");}
 
+
 {ID}	{printf("IDENTIFIER\n");}
+
+
+{STR}	{printf("STRING\n");}
+
+
 %%
+
+
+
 
 /* functions */
 
