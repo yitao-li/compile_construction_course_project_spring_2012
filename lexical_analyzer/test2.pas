@@ -2,6 +2,8 @@
 	This program is lexical and parsing error-free.
 }
 
+2x
+
 program errorfree;
 type
 	r = record

@@ -49,7 +49,7 @@ SYM	[\.,:;\(\)\[\]]
 ID	{LETTER}(_|{LETTER}|{DIGIT})*
 
 
-INT	{DIGIT}+
+INT	({DIGIT}+)?=[\x09\x0A\x0B\x0C\x0D\x20]
 
 
 
