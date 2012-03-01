@@ -52,6 +52,7 @@ ID	{LETTER}(_|{LETTER}|{DIGIT})*
 INT	({DIGIT}+)?=[\x09\x0A\x0B\x0C\x0D\x20]
 
 
+ERROR	.
 
 /* semantic actions */
 
@@ -148,6 +149,9 @@ while	{std::cout<<"while"<<std::setw(FW)<<"< KEYWORD, WHILE >\n";}
 
 
 {SYM}	{std::cout<<"\""<<yytext_ptr<<"\""<<std::setw(FW)<<"< SYMBOL, \""<<yytext_ptr<<"\" >\n";}
+
+
+{ERROR}	{std::cout<<"PARSER ERROR\n";return -1;}
 
 
 %%

@@ -2,7 +2,7 @@
 	This program is lexical and parsing error-free.
 }
 
-2x
+{2x}
 
 program errorfree;
 type
