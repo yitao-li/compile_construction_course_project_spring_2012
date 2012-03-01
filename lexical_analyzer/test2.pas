@@ -2,7 +2,7 @@
 	This program is lexical and parsing error-free.
 }
 
-{2x}
+{2x  (PASER ERROR IF UNCOMMENTED)}
 
 program errorfree;
 type
