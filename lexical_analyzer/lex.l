@@ -49,14 +49,17 @@ SYM	[\.,:;\(\)\[\]]
 ID	{LETTER}(_|{LETTER}|{DIGIT})*
 
 
-INT	({DIGIT}+)?=[\x09\x0A\x0B\x0C\x0D\x20] /* ASSUMING AN INTEGER MUST BE FOLLOWED BY A WHITE SPACE (SUBJECT TO CHANGE)*/
+/* ASSUMING AN INTEGER MUST BE FOLLOWED BY A WHITE SPACE (SUBJECT TO CHANGE) */
+
+INT	({DIGIT}+)?({WS})  
 
 
 ERROR	.
 
-/* semantic actions */
+/* semantic actions | \+\-\**/
 
 %%
+
 
 {COMMENT}	{/* std::cout<<"COMMENT\n"; */}
 

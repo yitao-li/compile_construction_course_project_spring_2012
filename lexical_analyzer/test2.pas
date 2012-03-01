@@ -4,6 +4,8 @@
 
 {2x  (PASER ERROR IF UNCOMMENTED)}
 
+2
+
 program errorfree;
 type
 	r = record
