@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <map>   //data structure for symbol table
 #include <string>
-#define YY_DECL int yylex(std::map<std::string, int> &symt, std::ofstream &f)
+#define YY_DECL int yylex(std::map<std::string, int> &symt)
 #define YY_MAIN 0
 #define YY_SKIP_YYWRAP 1
 #define FW 32
@@ -50,9 +50,9 @@ SYM	[\.,:;\(\)\[\]]
 ID	{LETTER}(_|{LETTER}|{DIGIT})*
 
 
-/* ASSUMING AN INTEGER MUST BE FOLLOWED BY A WHITE SPACE (SUBJECT TO CHANGE) */
+/* ASSUMING AN INTEGER MUST BE FOLLOWED BY A WHITE SPACE (SUBJECT TO CHANGE) <!-- ({DIGIT}+)?({WS}) */
 
-INT	({DIGIT}+)?({WS})  
+INT	{DIGIT}+
 
 
 ERROR	.
@@ -172,10 +172,12 @@ int yywrap(void){
 int main(void){
 	std::map<std::string, int> symt;
 	std::ofstream f("symtable.out", std::ios::out | std::ios::trunc);
-	yylex(symt, f);
-	std::cout<<"\n\nContent of the symbol table: \n\n"; std::cout<<"Value"<<std::setw(FW)<<"Key\n";
+	yylex(symt);
+	//f<<"\n\nContent of the symbol table: \n\n";
+	//f<<"Value"<<std::setw(FW)<<"Key\n";
 	for (std::map<std::string, int>::iterator itr = symt.begin(); itr != symt.end(); ++itr){
-		std::cout<<"\""<<itr->first<<"\""<<std::setw(FW)<<itr->second<<"\n";
+		f<<"\""<<itr->first<<"\""<<std::setw(FW)<<itr->second<<"\n";
 	}
+	f.close();
 	return 0;
 }
