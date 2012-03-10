@@ -1,11 +1,12 @@
 %{
 /* necessary definitions */
 
+#include <fstream>
 #include <iostream>
 #include <iomanip>
 #include <map>   //data structure for symbol table
 #include <string>
-#define YY_DECL int yylex(std::map<std::string, int> & symt)
+#define YY_DECL int yylex(std::map<std::string, int> &symt, std::ofstream &f)
 #define YY_MAIN 0
 #define YY_SKIP_YYWRAP 1
 #define FW 32
@@ -170,9 +171,9 @@ int yywrap(void){
 
 int main(void){
 	std::map<std::string, int> symt;
-	yylex(symt);
-	std::cout<<"\n\nContent of the symbol table: \n\n";
-	std::cout<<"Value"<<std::setw(FW)<<"Key\n";
+	std::ofstream f("symtable.out", std::ios::out | std::ios::trunc);
+	yylex(symt, f);
+	std::cout<<"\n\nContent of the symbol table: \n\n"; std::cout<<"Value"<<std::setw(FW)<<"Key\n";
 	for (std::map<std::string, int>::iterator itr = symt.begin(); itr != symt.end(); ++itr){
 		std::cout<<"\""<<itr->first<<"\""<<std::setw(FW)<<itr->second<<"\n";
 	}
