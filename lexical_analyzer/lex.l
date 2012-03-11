@@ -74,7 +74,7 @@ ERROR	.
 %%
 
 
-{COMMENT}	{return T_COMMENT;}
+{COMMENT}	{}
 
 
 {WS}	{}
