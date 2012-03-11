@@ -6,12 +6,15 @@
 #include <iomanip>
 #include <map>   //data structure for symbol table
 #include <string>
-#define YY_DECL int yylex(std::map<std::string, int> &symt, std::ofstream &r_fn)
-#define YY_MAIN 0
+#include "parser.tab.h"
+
+//#define YY_DECL int yylex(void)
+//#define YY_MAIN 0
 #define YY_SKIP_YYWRAP 1
 #define FW 32
 
 int yywrap(void);
+
 %}
 
 
@@ -38,13 +41,22 @@ DIGIT	[0-9]
 STR	\"[^\"]*\"
 
 
-RELOP	"<="|">="|"<>"|":="|".."|[<>=]
+ASSIGNMENT	":="
 
 
-ARITHMOP	[\+\-\*]
+RANGE	".."
 
 
-SYM	[\.,:;\(\)\[\]]
+RELOP	"<"|"<="|">"|">="|"<>"|"="
+
+
+MULOP	[\*]
+
+
+ADDOP	[\+\-]
+
+
+SYM     [\.,:;\(\)\[\]]
 
 
 ID	{LETTER}(_|{LETTER}|{DIGIT})*
@@ -62,101 +74,107 @@ ERROR	.
 %%
 
 
-{COMMENT}	{/* std::cout<<"COMMENT\n"; */ r_fn<<"COMMENT\n";}
+{COMMENT}	{return T_COMMENT;}
 
 
-{WS}	{/* std::cout<<"WHITE SPACE\n"; */ r_fn<<"WS\n";}
+{WS}	{}
 
 
-and	{std::cout<<"and"<<std::setw(FW)<<"< KEYWORD, AND >\n";r_fn<<"AND\n";}
+and	{return T_AND;}
 
 
-begin	{std::cout<<"begin"<<std::setw(FW)<<"< KEYWORD, BEGIN >\n";r_fn<<"BEGIN\n";}
+begin	{return T_BEGIN;}
 
 
-forward	{std::cout<<"forward"<<std::setw(FW)<<"< KEYWORD, FORWARD >\n";r_fn<<"FORWARD\n";}
+forward	{return T_FORWARD;}
 
 
-div	{std::cout<<"div"<<std::setw(FW)<<"< KEYWORD, DIV >\n";r_fn<<"DIV\n";}
+div	{return T_DIV;}
 
 
-do	{std::cout<<"do"<<std::setw(FW)<<"< KEYWORD, DO >\n";r_fn<<"DO\n";}
+do	{return T_DO;}
 
 
-else	{std::cout<<"else"<<std::setw(FW)<<"< KEYWORD, ELSE >\n";r_fn<<"ELSE\n";}
+else	{return T_ELSE;}
 
 
-end	{std::cout<<"end"<<std::setw(FW)<<"< KEYWORD, END >\n";r_fn<<"END\n";}
+end	{return T_END;}
 
 
-for	{std::cout<<"for"<<std::setw(FW)<<"< KEYWORD, FOR >\n";r_fn<<"FOR\n";}
+for	{return T_FOR;}
 
 
-function	{std::cout<<"function"<<std::setw(FW)<<"< KEYWORD, FUNCTION >\n";r_fn<<"FUNCTION\n";}
+function	{return T_FUNCTION;}
 
 
-if	{std::cout<<"if"<<std::setw(FW)<<"< KEYWORD, IF >\n";r_fn<<"IF\n";}
+if	{return T_IF;}
 
 
-array	{std::cout<<"array"<<std::setw(FW)<<"< KEYWORD, ARRAY >\n";r_fn<<"ARRAy\n";}
+array	{return T_ARRAY;}
 
 
-mod	{std::cout<<"mod"<<std::setw(FW)<<"< KEYWORD, MOD >\n";r_fn<<"MOD\n";}
+mod	{return T_MOD;}
 
 
-not	{std::cout<<"not"<<std::setw(FW)<<"< KEYWORD, NOT >\n";r_fn<<"NOT\n";}
+not	{return T_NOT;}
 
 
-of	{std::cout<<"of"<<std::setw(FW)<<"< KEYWORD, OF >\n";r_fn<<"OF\n";}
+of	{return T_OF;}
 
 
-or	{std::cout<<"or"<<std::setw(FW)<<"< KEYWORD, OR >\n";r_fn<<"OR\n";}
+or	{return T_OR;}
 
 
-procedure	{std::cout<<"procedure"<<std::setw(FW)<<"< KEYWORD, PROCEDURE >\n";r_fn<<"PROCEDURE\n";}
+procedure	{return T_PROCEDURE;}
 
 
-program	{std::cout<<"program"<<std::setw(FW)<<"< KEYWORD, PROGRAM >\n";r_fn<<"PROGRAM\n";}
+program	{return T_PROGRAM;}
 
 
-record	{std::cout<<"record"<<std::setw(FW)<<"< KEYWORD, RECORD >\n";r_fn<<"RECORD\n";}
+record	{return T_RECORD;}
 
 
-then	{std::cout<<"then"<<std::setw(FW)<<"< KEYWORD, THEN >\n";r_fn<<"THEN\n";}
+then	{return T_THEN;}
 
 
-to	{std::cout<<"to"<<std::setw(FW)<<"< KEYWORD, TO >\n";r_fn<<"TO\n";}
+to	{return T_TO;}
 
 
-type	{std::cout<<"type"<<std::setw(FW)<<"< KEYWORD, TYPE >\n";r_fn<<"TYPE\n";}
+type	{return T_TYPE;}
 
 
-var	{std::cout<<"var"<<std::setw(FW)<<"< KEYWORD, VAR >\n";r_fn<<"VAR\n";}
+var	{return T_VAR;}
 
 
-while	{std::cout<<"while"<<std::setw(FW)<<"< KEYWORD, WHILE >\n";r_fn<<"WHILE\n";}
+while	{return T_WHILE;}
 
 
-{ID}	{std::string str(yytext_ptr); std::cout<<"\""<<yytext_ptr<<"\""<<std::setw(FW)<<"< IDENTIFIER, \""<<yytext_ptr<<"\" >\n"; if (symt.find(str) == symt.end()) { symt[str] = symt.size(); }r_fn<<"IDENTIFIER\n";}
+{ID}	{/*std::string str(yytext_ptr); std::cout<<"\""<<yytext_ptr<<"\""<<std::setw(FW)<<"< IDENTIFIER, \""<<yytext_ptr<<"\" >\n"; if (symt.find(str) == symt.end()) { symt[str] = symt.size(); }r_fn<<"IDENTIFIER\n";*/
+return T_ID;}
 
 
-{INT}	{std::cout<<"\""<<yytext_ptr<<"\""<<std::setw(FW)<<"< INTEGER, \""<<yytext_ptr<<"\" >\n";r_fn<<"INT\n";}
+{INT}	{return T_INT;}
 
 
-{STR}	{std::cout<<"\""<<yytext_ptr<<"\""<<std::setw(FW)<<"< STRING, \""<<yytext_ptr<<"\" >\n";r_fn<<"STR\n";}
+{STR}	{return T_STR;}
 
 
-{RELOP}	{std::cout<<"\""<<yytext_ptr<<"\""<<std::setw(FW)<<"< RELATIONAL_OPERATOR, \""<<yytext_ptr<<"\" >\n";r_fn<<"RELOP\n";}
+{ASSIGNMENT} {return T_ASSIGNMENT;}
 
 
-{ARITHMOP}	{std::cout<<"\""<<yytext_ptr<<"\""<<std::setw(FW)<<"< ARITHEMATIC_OPERATOR, \""<<yytext_ptr<<"\" >\n";r_fn<<"ARITHMOP\n";}
+{RANGE} {return T_RANGE;}
 
 
-{SYM}	{std::cout<<"\""<<yytext_ptr<<"\""<<std::setw(FW)<<"< SYMBOL, \""<<yytext_ptr<<"\" >\n";r_fn<<"SYM\n";}
+{RELOP}	{return T_RELOP;}
 
 
-{ERROR}	{std::cout<<"PARSER ERROR\n";r_fn<<"ERROR\n";return -1;}
+{MULOP}	{return T_MULOP;}
 
+
+{ADDOP}	{return T_ADDOP;}
+
+
+{SYM} {return *yytext_ptr;}
 
 %%
 
@@ -167,17 +185,4 @@ while	{std::cout<<"while"<<std::setw(FW)<<"< KEYWORD, WHILE >\n";r_fn<<"WHILE\n"
 
 int yywrap(void){
 	return 1;
-}
-
-int main(void){
-	std::map<std::string, int> symt;
-	std::ofstream f("symtable.out", std::ios::out | std::ios::trunc), rf("rules.out", std::ios::out | std::ios::trunc);
-	yylex(symt, rf);
-	//f<<"\n\nContent of the symbol table: \n\n";
-	//f<<"Value"<<std::setw(FW)<<"Key\n";
-	for (std::map<std::string, int>::iterator itr = symt.begin(); itr != symt.end(); ++itr){
-		f<<"\""<<itr->first<<"\""<<std::setw(FW)<<itr->second<<"\n";
-	}
-	f.close();
-	return 0;
 }

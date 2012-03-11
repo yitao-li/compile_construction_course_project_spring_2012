@@ -3,19 +3,26 @@ CFLAGS=-c -g -Wall -O3
 LDFLAGS=
 
 FLEX=flex
-FLEX_OUTPUT=lex.yy.c
+FLEX_OUTPUT=lex.h
 
-SOURCES=lex.l
-OBJECTS=$(SOURCES:.l=.o)
-EXECUTABLE=lex
+BISON=bison
+BISON_OUTPUT_C=parser.tab.c
+BISON_OUTPUT_H=parser.tab.h
+BISON_OUTPUT_O=parser.tab.o
+
+SOURCES=lex.l parser.y
+EXECUTABLE=parser
 
 all: $(SOURCES) $(EXECUTABLE)
 
-$(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+$(EXECUTABLE): $(SOURCES:.l=.h) $(SOURCES:.y=.o)
+	$(CC) $(LDFLAGS) $(BISON_OUTPUT_O) -o $@
 
-.l.o:
-	$(FLEX) $< && $(CC) $(CFLAGS) $(FLEX_OUTPUT) -o $@
+.l.h:
+	$(FLEX) -o $(FLEX_OUTPUT) $<
+
+.y.o:
+	$(BISON) -d -v $< && $(CC) $(CFLAGS) $(BISON_OUTPUT_C)
 
 clean:
-	rm *.o $(FLEX_OUTPUT) $(EXCUTABLE)
+	rm *.o $(FLEX_OUTPUT) $(BISON_OUTPUT_C) $(BISON_OUTPUT_H) $(EXCUTABLE)
