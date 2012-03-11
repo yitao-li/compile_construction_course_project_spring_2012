@@ -1,6 +1,7 @@
 CC=g++
 CFLAGS=-c -g -Wall -O3
 LDFLAGS=
+BISON_FLAGS=-d -v
 
 FLEX=flex
 FLEX_OUTPUT=lex.h
@@ -22,7 +23,7 @@ $(EXECUTABLE): $(SOURCES:.l=.h) $(SOURCES:.y=.o)
 	$(FLEX) -o $(FLEX_OUTPUT) $<
 
 .y.o:
-	$(BISON) -d -v $< && $(CC) $(CFLAGS) $(BISON_OUTPUT_C)
+	$(BISON) $(BISON_FLAGS) $< && $(CC) $(CFLAGS) $(BISON_OUTPUT_C)
 
 clean:
-	rm *.o $(FLEX_OUTPUT) $(BISON_OUTPUT_C) $(BISON_OUTPUT_H) $(EXCUTABLE)
+	rm *.o *.out *.output $(FLEX_OUTPUT) $(BISON_OUTPUT_C) $(BISON_OUTPUT_H) $(EXCUTABLE)
