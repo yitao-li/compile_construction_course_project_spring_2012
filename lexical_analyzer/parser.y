@@ -22,7 +22,7 @@ struct id_attr{
 	size_t addr;
 };
 
-int current_argc = 0;
+int argc = 0, current_argc = 0;
 
 std::string current_id, current_type, type;
 
@@ -70,7 +70,8 @@ T_ID {
 	current_id = std::string("typedef ").append(std::string(yytext_ptr));
 } '=' Type
 {
-	symt[current_id] = {type, symt.size()};
+	symt[current_id] = {current_type, symt.size()};
+	current_type = "";
 }
 ;
 
@@ -132,8 +133,8 @@ T_PROCEDURE T_ID {
 	}
 '(' FormalParameterList {
 	std::stringstream ss;
-	ss << current_argc;
-	current_argc = 0;
+	ss << argc;
+	argc = 0;
 	current_type = "";
 	symt[std::string("procedure ").append(current_id)] = {ss.str(), symt.size()};
 }')' ';' DeclarationBody
@@ -145,8 +146,8 @@ T_FUNCTION T_ID {
 	current_id = std::string(yytext_ptr);
 } '(' FormalParameterList {
 	std::stringstream ss;
-	ss << current_argc;
-	current_argc = 0;
+	ss << argc;
+	argc = 0;
 	current_type = "";
 	symt[std::string("function ").append(current_id)] = {ss.str(), symt.size()};
 } ')' ':' ResultType ';' DeclarationBody
@@ -163,14 +164,29 @@ FormalParameterList
 :
 /* empty */
 |
-IdentifierList ':' Type OptIdentifiers
+IdentifierList ':' Type {
+	for (int i = 0; i < current_argc; ++i){
+		current_type.append(type).append(",");
+	}
+	current_argv.clear();
+	argc += current_argc;
+	current_argc = 0;
+}OptIdentifiers
 ;
 
 OptIdentifiers
 :
 /* empty */
 |
-';' IdentifierList ':' Type OptIdentifiers
+';' IdentifierList ':' Type {
+	for (int i = 0; i < current_argc; ++i){
+		current_type.append(type).append(",");
+	}
+	current_argv.clear();
+	argc += current_argc;
+	current_argc = 0;
+}
+OptIdentifiers
 ;
 
 Block
@@ -245,6 +261,9 @@ Type   /* todo: replace literal typename with special (reserved) symbols */
 :
 T_ID {
 	type = std::string(yytext_ptr);
+	if (current_type == ""){
+		current_type = type;
+	}
 }
 |
 T_ARRAY '[' Constant T_RANGE Constant ']' T_OF {
@@ -269,7 +288,14 @@ FieldList
 :
 /* empty */
 |
-IdentifierList ':' Type {current_type.append(",");} OptIdentifiers
+IdentifierList ':' Type {
+	for (int i = 0; i < current_argc; ++i){
+		current_type.append(type).append(",");
+	}
+	current_argv.clear();
+	current_argc = 0;
+}
+OptIdentifiers
 ;
 
 Constant
@@ -389,7 +415,6 @@ IdentifierList
 :
 T_ID {
 	current_argv.push_back(std::string(yytext_ptr));
-	current_type.append(type);
 	++current_argc;
 } Identifiers
 ;
