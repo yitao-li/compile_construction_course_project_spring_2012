@@ -14,14 +14,14 @@
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
 
-struct id_attribute{
+struct id_attr{
 	std::string type;
 	size_t addr;
 };
 
 std::string current_id, current_type;
 
-std::map< std::string, id_attribute > symt;
+std::map< std::string, id_attr > symt;
 
 int yyerror(const char *);
 
@@ -80,7 +80,10 @@ FunctionDeclaration
 
 TypeDefinition
 :
-T_ID {std::cout<<"current id: "<<std::string(yytext_ptr)<<" ";} '=' Type
+T_ID {std::cout<<"current id: "<<std::string(yytext_ptr)<<",    ";} '=' Type
+{std::cout<<"current type: "<<current_type<<std::endl;
+symt[current_id] = {current_type, symt.size()};
+current_type = "";}
 ;
 
 VariableDeclarations
@@ -128,7 +131,7 @@ OptIdentifiers
 :
 /* empty */
 |
-';' IdentifierList ':' Type OptIdentifiers
+';' IdentifierList ':' Type {current_type.append(",");} OptIdentifiers
 ;
 
 Block
@@ -199,13 +202,13 @@ Statements
 ';' Statement Statements
 ;
 
-Type
+Type   /* todo: replace literal typename with special (reserved) symbols */
 :
-T_ID {std::cout<<"current type: "<<std::string(yytext_ptr)<<std::endl;}
+T_ID {current_type.append(std::string(yytext_ptr));}
 |
-T_ARRAY '[' Constant T_RANGE Constant ']' T_OF {std::cout<<"current type: Array_Of_"<<std::endl;} Type
+T_ARRAY '[' Constant T_RANGE Constant ']' T_OF {current_type.append("array_of_");} Type
 |
-T_RECORD {std::cout<<"current type: record"<<std::endl;} FieldList T_END
+T_RECORD {current_type.append("record {");} FieldList T_END {current_type.append("}");}
 ;
 
 ResultType
@@ -217,7 +220,7 @@ FieldList
 :
 /* empty */
 |
-IdentifierList ':' Type OptIdentifiers
+IdentifierList ':' Type {current_type.append(",");} OptIdentifiers
 ;
 
 Constant

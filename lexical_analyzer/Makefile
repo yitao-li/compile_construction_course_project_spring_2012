@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-c -g -Wall -O3
+CFLAGS=-c -g -std=c++0x -O3 -Wall
 LDFLAGS=
 BISON_FLAGS=-d -v
 
