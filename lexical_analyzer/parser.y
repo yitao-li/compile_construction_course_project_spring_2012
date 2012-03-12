@@ -5,6 +5,7 @@
 %{
 
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <iomanip>
 #include <map>   //data structure for symbol table
@@ -19,6 +20,8 @@ struct id_attr{
 	std::string type;
 	size_t addr;
 };
+
+int current_argc = 0;
 
 std::string current_id, current_type;
 
@@ -61,7 +64,7 @@ TypeDefinition ';' _OptTypeDefinitions
 TypeDefinition
 :
 T_ID {/* std::cout<<"current id: "<<std::string(yytext_ptr)<<",    "; */ current_id = std::string(yytext_ptr);} '=' Type
-{/* std::cout<<"current id: "<<current_id<<",    "<<"current type: "<<current_type<<std::endl; */ symt[current_id] = {current_type, symt.size()}; current_type = "";}
+{/* std::cout<<"current id: "<<current_id<<",    "<<"current type: "<<current_type<<std::endl; */ symt[current_id] = {current_type, symt.size()}; current_type = ""; current_argc = 0;}
 ;
 
 VariableDeclarations
@@ -116,7 +119,8 @@ T_PROCEDURE T_ID '(' FormalParameterList ')' ';' DeclarationBody
 
 FunctionDeclaration
 :
-T_FUNCTION T_ID '(' FormalParameterList ')' ':' ResultType ';' DeclarationBody
+T_FUNCTION T_ID {current_id = std::string(yytext_ptr); /*std::cout<<"FUNCTION :"<<current_id<<std::endl;*/} '(' FormalParameterList {
+std::stringstream ss; ss << current_argc; current_argc = 0; current_type = ""; symt[current_id] = {ss.str(), symt.size()}; } ')' ':' ResultType ';' DeclarationBody
 ;
 
 DeclarationBody
@@ -128,7 +132,7 @@ T_FORWARD
 
 FormalParameterList
 :
-/* empty */
+/* empty */ {current_argc = 0;}
 |
 IdentifierList ':' Type OptIdentifiers
 ;
@@ -344,14 +348,14 @@ OptExpressions
 
 IdentifierList
 :
-T_ID Identifiers
+T_ID {++current_argc;} Identifiers
 ;
 
 Identifiers
 :
 /* empty */
 |
-',' T_ID Identifiers
+',' T_ID {++current_argc;} Identifiers
 ;
 
 Sign
