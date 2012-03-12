@@ -162,8 +162,14 @@ T_FORWARD
 
 FormalParameterList
 :
+{
+	argc = 0;
+}
 /* empty */
 |
+{
+	argc = 0;
+}
 IdentifierList ':' Type {
 	for (int i = 0; i < current_argc; ++i){
 		current_type.append(type).append(",");
