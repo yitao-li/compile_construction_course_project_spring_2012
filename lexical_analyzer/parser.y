@@ -39,6 +39,11 @@ Program
 T_PROGRAM T_ID ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
 ;
 
+TypeDefinitions
+:
+T_TYPE TypeDefinition ';' _OptTypeDefinitions 
+;
+
 OptTypeDefinitions
 :
 /* empty */
@@ -53,9 +58,34 @@ _OptTypeDefinitions
 TypeDefinition ';' _OptTypeDefinitions
 ;
 
-TypeDefinitions
+TypeDefinition
 :
-T_TYPE TypeDefinition ';' _OptTypeDefinitions 
+T_ID {/* std::cout<<"current id: "<<std::string(yytext_ptr)<<",    "; */ current_id = std::string(yytext_ptr);} '=' Type
+{/* std::cout<<"current id: "<<current_id<<",    "<<"current type: "<<current_type<<std::endl; */ symt[current_id] = {current_type, symt.size()}; current_type = "";}
+;
+
+VariableDeclarations
+:
+T_VAR VariableDeclaration ';' _OptVariableDeclarations
+;
+
+VariableDeclaration
+:
+IdentifierList ':' Type
+;
+
+_OptVariableDeclarations
+:
+/* empty */
+|
+VariableDeclaration ';' _OptVariableDeclarations
+;
+
+OptVariableDeclarations
+:
+/* empty */
+|
+VariableDeclaration ';' OptVariableDeclarations
 ;
 
 OptSubprogramDeclarations
@@ -77,29 +107,6 @@ SubprogramDeclaration
 ProcedureDeclaration
 |
 FunctionDeclaration
-;
-
-TypeDefinition
-:
-T_ID {/* std::cout<<"current id: "<<std::string(yytext_ptr)<<",    "; */ current_id = std::string(yytext_ptr);} '=' Type
-{/* std::cout<<"current id: "<<current_id<<",    "<<"current type: "<<current_type<<std::endl; */ symt[current_id] = {current_type, symt.size()}; current_type = "";}
-;
-
-VariableDeclarations
-:
-T_VAR VariableDeclaration ';' OptVariableDeclarations
-;
-
-OptVariableDeclarations
-:
-/* empty */
-|
-VariableDeclaration ';' OptVariableDeclarations
-;
-
-VariableDeclaration
-:
-IdentifierList ':' Type
 ;
 
 ProcedureDeclaration

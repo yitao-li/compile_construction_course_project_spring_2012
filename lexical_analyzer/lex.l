@@ -3,10 +3,7 @@
 
 #include "parser.tab.h"
 
-//#define YY_DECL int yylex(void)
-//#define YY_MAIN 0
 #define YY_SKIP_YYWRAP 1
-#define FW 32
 
 int yywrap(void);
 
