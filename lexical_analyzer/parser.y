@@ -9,6 +9,7 @@
 #include <iostream>
 #include <iomanip>
 #include <map>   //data structure for symbol table
+#include <list>
 #include <string>
 #include "lex.h"
 
@@ -23,7 +24,9 @@ struct id_attr{
 
 int current_argc = 0;
 
-std::string current_id, current_type;
+std::string current_id, current_type, type;
+
+std::list<std::string> current_argv;
 
 std::map< std::string, id_attr > symt;
 
@@ -63,8 +66,12 @@ TypeDefinition ';' _OptTypeDefinitions
 
 TypeDefinition
 :
-T_ID {/* std::cout<<"current id: "<<std::string(yytext_ptr)<<",    "; */ current_id = std::string(yytext_ptr);} '=' Type
-{/* std::cout<<"current id: "<<current_id<<",    "<<"current type: "<<current_type<<std::endl; */ symt[current_id] = {current_type, symt.size()}; current_type = ""; current_argc = 0;}
+T_ID {
+	current_id = std::string("typedef ").append(std::string(yytext_ptr));
+} '=' Type
+{
+	symt[current_id] = {type, symt.size()};
+}
 ;
 
 VariableDeclarations
@@ -74,7 +81,13 @@ T_VAR VariableDeclaration ';' _OptVariableDeclarations
 
 VariableDeclaration
 :
-IdentifierList ':' Type
+IdentifierList ':' Type {
+	for (std::list<std::string>::iterator itr = current_argv.begin(); itr != current_argv.end(); ++itr){
+		symt[std::string("var ").append(*itr)] = {type, symt.size()};
+	}
+	current_argv.clear();
+	current_argc = 0;
+}
 ;
 
 OptVariableDeclarations
@@ -114,13 +127,29 @@ FunctionDeclaration
 
 ProcedureDeclaration
 :
-T_PROCEDURE T_ID '(' FormalParameterList ')' ';' DeclarationBody
+T_PROCEDURE T_ID {
+	current_id = std::string(yytext_ptr);
+	}
+'(' FormalParameterList {
+	std::stringstream ss;
+	ss << current_argc;
+	current_argc = 0;
+	current_type = "";
+	symt[std::string("procedure ").append(current_id)] = {ss.str(), symt.size()};
+}')' ';' DeclarationBody
 ;
 
 FunctionDeclaration
 :
-T_FUNCTION T_ID {current_id = std::string(yytext_ptr); /*std::cout<<"FUNCTION :"<<current_id<<std::endl;*/} '(' FormalParameterList {
-std::stringstream ss; ss << current_argc; current_argc = 0; current_type = ""; symt[current_id] = {ss.str(), symt.size()}; } ')' ':' ResultType ';' DeclarationBody
+T_FUNCTION T_ID {
+	current_id = std::string(yytext_ptr);
+} '(' FormalParameterList {
+	std::stringstream ss;
+	ss << current_argc;
+	current_argc = 0;
+	current_type = "";
+	symt[std::string("function ").append(current_id)] = {ss.str(), symt.size()};
+} ')' ':' ResultType ';' DeclarationBody
 ;
 
 DeclarationBody
@@ -132,7 +161,7 @@ T_FORWARD
 
 FormalParameterList
 :
-/* empty */ {current_argc = 0;}
+/* empty */
 |
 IdentifierList ':' Type OptIdentifiers
 ;
@@ -141,7 +170,7 @@ OptIdentifiers
 :
 /* empty */
 |
-';' IdentifierList ':' Type {current_type.append(",");} OptIdentifiers
+';' IdentifierList ':' Type OptIdentifiers
 ;
 
 Block
@@ -214,11 +243,21 @@ Statements
 
 Type   /* todo: replace literal typename with special (reserved) symbols */
 :
-T_ID {current_type.append(std::string(yytext_ptr));}
+T_ID {
+	type = std::string(yytext_ptr);
+}
 |
-T_ARRAY '[' Constant T_RANGE Constant ']' T_OF {current_type.append("array_of_");} Type
+T_ARRAY '[' Constant T_RANGE Constant ']' T_OF {
+	current_type.append("array_of_");
+} Type {
+	current_type.append(type);
+}
 |
-T_RECORD {current_type.append("record {");} FieldList T_END {current_type.append("}");}
+T_RECORD {
+	current_type.append("record {");
+} FieldList T_END {
+	current_type.append("}");
+}
 ;
 
 ResultType
@@ -348,14 +387,21 @@ OptExpressions
 
 IdentifierList
 :
-T_ID {++current_argc;} Identifiers
+T_ID {
+	current_argv.push_back(std::string(yytext_ptr));
+	current_type.append(type);
+	++current_argc;
+} Identifiers
 ;
 
 Identifiers
 :
 /* empty */
 |
-',' T_ID {++current_argc;} Identifiers
+',' T_ID {
+	current_argv.push_back(std::string(yytext_ptr));
+	++current_argc;
+} Identifiers
 ;
 
 Sign
