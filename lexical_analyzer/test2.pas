@@ -2,10 +2,6 @@
 	This program is lexical and parsing error-free.
 }
 
-{2x  (PASER ERROR IF UNCOMMENTED)}
-
-2
-
 program errorfree;
 type
 	r = record
