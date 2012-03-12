@@ -15,6 +15,9 @@
 #define YYERROR_VERBOSE 1
 
 int yyerror(const char *);
+
+std::map< std::string, std::pair<int, int> > symt;
+
 %}
 
 
@@ -35,11 +38,16 @@ OptTypeDefinitions
 TypeDefinitions
 ;
 
+_OptTypeDefinitions
+:
+/* empty */
+|
+TypeDefinition ';' _OptTypeDefinitions
+;
+
 TypeDefinitions
 :
-T_TYPE TypeDefinition ';'
-|
-TypeDefinitions TypeDefinition ';' 
+T_TYPE TypeDefinition ';' _OptTypeDefinitions 
 ;
 
 OptSubprogramDeclarations
@@ -216,7 +224,14 @@ Expression
 :
 SimpleExpression
 |
-SimpleExpression T_RELOP SimpleExpression
+SimpleExpression RelationalOp SimpleExpression
+;
+
+RelationalOp
+:
+T_RELOP
+|
+'='
 ;
 
 SimpleExpression
@@ -333,7 +348,7 @@ Sign
 %%
 
 int yyerror(const char *s){
-	std::cerr<<"line "<<yylineno<<":    "<<s<<std::endl;
+	std::cerr<<s<<std::endl;
 	return 0;
 }
 

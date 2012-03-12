@@ -42,16 +42,13 @@ ASSIGNMENT	":="
 RANGE	".."
 
 
-RELOP	"<"|"<="|">"|">="|"<>"|"="
+RELOP	"<"|"<="|">"|">="|"<>"
 
 
 MULOP	[\*]
 
 
 ADDOP	[\+\-]
-
-
-SYM     [\.,:;\(\)\[\]]
 
 
 ID	{LETTER}(_|{LETTER}|{DIGIT})*
@@ -62,7 +59,7 @@ ID	{LETTER}(_|{LETTER}|{DIGIT})*
 INT	{DIGIT}+
 
 
-ERROR	.
+OTHER	.
 
 /* semantic actions */
 
@@ -144,7 +141,7 @@ var	{return T_VAR;}
 while	{return T_WHILE;}
 
 
-{ID}	{std::cout<<std::string(yytext_ptr)<<std::endl; return T_ID;}
+{ID}	{return T_ID;}
 
 
 {INT}	{return T_INT;}
@@ -168,7 +165,7 @@ while	{return T_WHILE;}
 {ADDOP}	{return T_ADDOP;}
 
 
-{SYM} {return *yytext_ptr;}
+{OTHER} {return *yytext_ptr;}
 
 
 %%
