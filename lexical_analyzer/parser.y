@@ -13,6 +13,7 @@
 
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
+#define FW 40
 
 struct id_attr{
 	std::string type;
@@ -80,10 +81,8 @@ FunctionDeclaration
 
 TypeDefinition
 :
-T_ID {std::cout<<"current id: "<<std::string(yytext_ptr)<<",    ";} '=' Type
-{std::cout<<"current type: "<<current_type<<std::endl;
-symt[current_id] = {current_type, symt.size()};
-current_type = "";}
+T_ID {/* std::cout<<"current id: "<<std::string(yytext_ptr)<<",    "; */ current_id = std::string(yytext_ptr);} '=' Type
+{/* std::cout<<"current id: "<<current_id<<",    "<<"current type: "<<current_type<<std::endl; */ symt[current_id] = {current_type, symt.size()}; current_type = "";}
 ;
 
 VariableDeclarations
@@ -365,11 +364,15 @@ int yyerror(const char *s){
 int main(void){
 	int ret = yyparse();
 	if (ret == 1){
-		std::cout<<"syntax error found"<<std::endl;
+		std::cout<<"\nsyntax error found\n";
 	}else if (ret == 2){
-		std::cout<<"memory exhausted"<<std::endl;
+		std::cout<<"\nmemory exhausted\n";
 	}else{
-		std::cout<<"no syntax error found"<<std::endl;
+		std::cout<<"\nno syntax error found\n";
 	}
+	std::cout<<"\n";
+	for (std::map<std::string, id_attr>::iterator itr = symt.begin(); itr != symt.end(); ++itr){
+		std::cout<<std::setw(FW)<<std::left<<itr->first<<std::setw(FW)<<std::left<<itr->second.type<<std::setw(FW)<<std::left<<itr->second.addr<<"\n";
+	}        
 	return 0;
 }
