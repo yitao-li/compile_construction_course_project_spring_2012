@@ -14,9 +14,16 @@
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
 
-int yyerror(const char *);
+struct id_attribute{
+	std::string type;
+	size_t addr;
+};
 
-std::map< std::string, std::pair<int, int> > symt;
+std::string current_id, current_type;
+
+std::map< std::string, id_attribute > symt;
+
+int yyerror(const char *);
 
 %}
 
@@ -73,7 +80,7 @@ FunctionDeclaration
 
 TypeDefinition
 :
-T_ID '=' Type
+T_ID {std::cout<<"current id: "<<std::string(yytext_ptr)<<" ";} '=' Type
 ;
 
 VariableDeclarations
@@ -194,11 +201,11 @@ Statements
 
 Type
 :
-T_ID
+T_ID {std::cout<<"current type: "<<std::string(yytext_ptr)<<std::endl;}
 |
-T_ARRAY '[' Constant T_RANGE Constant ']' T_OF Type
+T_ARRAY '[' Constant T_RANGE Constant ']' T_OF {std::cout<<"current type: Array_Of_"<<std::endl;} Type
 |
-T_RECORD FieldList T_END
+T_RECORD {std::cout<<"current type: record"<<std::endl;} FieldList T_END
 ;
 
 ResultType
