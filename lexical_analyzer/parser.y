@@ -74,18 +74,18 @@ VariableDeclaration
 IdentifierList ':' Type
 ;
 
+OptVariableDeclarations
+:
+/* empty */
+|
+VariableDeclarations
+;
+
 _OptVariableDeclarations
 :
 /* empty */
 |
 VariableDeclaration ';' _OptVariableDeclarations
-;
-
-OptVariableDeclarations
-:
-/* empty */
-|
-VariableDeclaration ';' OptVariableDeclarations
 ;
 
 OptSubprogramDeclarations
