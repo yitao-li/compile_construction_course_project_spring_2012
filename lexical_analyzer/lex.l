@@ -1,11 +1,6 @@
 %{
 /* necessary definitions */
 
-#include <fstream>
-#include <iostream>
-#include <iomanip>
-#include <map>   //data structure for symbol table
-#include <string>
 #include "parser.tab.h"
 
 //#define YY_DECL int yylex(void)
@@ -25,9 +20,9 @@ int yywrap(void);
 WS	[\x09\x0A\x0B\x0C\x0D\x20]+
 
 
-/* WARNING: GREEDY MATCHING REQUIRED*/
+/* WARNING: GREEDY MATCHING SHOULD BE DISABLED (OTHERWISE 2 COMMENTS WILL BECOME 1 COMMENT)*/
 
-COMMENT	\{(.|{WS})*\}
+COMMENT	\{[^\}]*\}
 
 
 LETTER	[A-Za-z]
@@ -149,8 +144,7 @@ var	{return T_VAR;}
 while	{return T_WHILE;}
 
 
-{ID}	{/*std::string str(yytext_ptr); std::cout<<"\""<<yytext_ptr<<"\""<<std::setw(FW)<<"< IDENTIFIER, \""<<yytext_ptr<<"\" >\n"; if (symt.find(str) == symt.end()) { symt[str] = symt.size(); }r_fn<<"IDENTIFIER\n";*/
-return T_ID;}
+{ID}	{std::cout<<std::string(yytext_ptr)<<std::endl; return T_ID;}
 
 
 {INT}	{return T_INT;}
@@ -175,6 +169,7 @@ return T_ID;}
 
 
 {SYM} {return *yytext_ptr;}
+
 
 %%
 

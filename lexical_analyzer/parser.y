@@ -3,6 +3,12 @@
 %token T_AND T_BEGIN T_FORWARD T_DIV T_DO T_ELSE T_END T_FOR T_FUNCTION T_IF T_ARRAY T_MOD T_NOT T_OF T_OR T_PROCEDURE T_PROGRAM T_RECORD T_THEN T_TO T_TYPE T_VAR T_WHILE T_ID T_INT T_STR T_ASSIGNMENT T_RANGE T_RELOP T_MULOP T_ADDOP
 
 %{
+
+#include <fstream>
+#include <iostream>
+#include <iomanip>
+#include <map>   //data structure for symbol table
+#include <string>
 #include "lex.h"
 
 #define YYDEBUG 1
