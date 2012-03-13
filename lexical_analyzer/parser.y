@@ -25,16 +25,13 @@ struct id_attr{
 };
 
 int argc = 0, current_argc = 0;
-
 std::string current_id, current_type, type;
-
 std::list<std::string> current_argv;
-
 std::map< std::string, id_attr > symt;
-
 std::fstream rules_out(RULES_OUTPUT, std::ios::out | std::ios::trunc);
 
 int yyerror(const char *);
+int UpdateVar(void), UpdateType(void);
 
 %}
 
@@ -87,13 +84,7 @@ T_VAR VariableDeclaration ';' _OptVariableDeclarations {rules_out<<"VariableDecl
 
 VariableDeclaration
 :
-IdentifierList ':' Type {
-	for (std::list<std::string>::iterator itr = current_argv.begin(); itr != current_argv.end(); ++itr){
-		symt[std::string("var ").append(*itr)] = {type, symt.size()};
-	}
-	current_argv.clear();
-	current_argc = 0;
-} {rules_out<<"VariableDeclaration\n";}
+IdentifierList ':' Type {UpdateVar();} {rules_out<<"VariableDeclaration\n";}
 ;
 
 OptVariableDeclarations
@@ -176,12 +167,15 @@ FormalParameterList
 	argc = 0;
 }
 IdentifierList ':' Type {
+/*
 	for (int i = 0; i < current_argc; ++i){
 		current_type.append(type).append(",");
 	}
 	current_argv.clear();
 	argc += current_argc;
 	current_argc = 0;
+*/
+	UpdateType();
 }OptIdentifiers {rules_out<<"FormalParameterList\n";}
 ;
 
@@ -190,12 +184,15 @@ OptIdentifiers
 /* empty */ {rules_out<<"OptIdentifiers\n";}
 |
 ';' IdentifierList ':' Type {
+/*
 	for (int i = 0; i < current_argc; ++i){
 		current_type.append(type).append(",");
 	}
 	current_argv.clear();
 	argc += current_argc;
 	current_argc = 0;
+*/
+	UpdateType();
 }
 OptIdentifiers {rules_out<<"OptIdentifiers\n";}
 ;
@@ -226,7 +223,7 @@ StructuredStatement {rules_out<<"Statement\n";}
 
 SimpleStatement
 :
-/* empty */
+/* empty */ {rules_out<<"SimpleStatement\n";}
 |
 AssignmentStatement {rules_out<<"SimpleStatement\n";}
 |
@@ -451,6 +448,25 @@ Sign
 
 int yyerror(const char *s){
 	std::cerr<<s<<std::endl;
+	return 0;
+}
+
+int UpdateVar(void){
+	for (std::list<std::string>::iterator itr = current_argv.begin(); itr != current_argv.end(); ++itr){
+		symt[std::string("var ").append(*itr)] = {type, symt.size()};
+	}
+	current_argv.clear();
+	current_argc = 0;
+	return 0;
+}
+
+int UpdateType(void){
+	for (int i = 0; i < current_argc; ++i){
+		current_type.append(type).append(",");
+	}
+	current_argv.clear();
+	argc += current_argc;
+	current_argc = 0;
 	return 0;
 }
 

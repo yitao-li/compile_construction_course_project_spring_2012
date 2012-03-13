@@ -1,0 +1,17 @@
+** to compile optimally **
+
+make clean
+make
+
+
+** to run on input files **
+
+./parser < lexer_test.pas
+./parser < test2.pas
+./parser < test3.pas
+
+
+** to examine output **
+
+cat symtable.out
+cat rules.out
