@@ -43,7 +43,7 @@ int UpdateVar(void), UpdateType(void);
 
 Program
 :
-T_PROGRAM T_ID ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.' {rules_out<<"Program\n";}
+T_PROGRAM T_ID{symt[std::string("program ").append(std::string(yytext_ptr))] = {"program", symt.size()};} ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.' {rules_out<<"Program\n";}
 ;
 
 TypeDefinitions

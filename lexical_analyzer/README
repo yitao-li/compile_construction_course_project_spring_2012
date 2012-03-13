@@ -15,3 +15,18 @@ make
 
 cat symtable.out
 cat rules.out
+
+
+/*
+
+   note:
+
+    1. The current version does not complain about duplicate keys in the symbol table.
+       This should be changed in the near future (as part of error handling).
+       
+    2. Conflicts: 1 shift/reduce, 1 reduce/reduce
+
+    3. The current symbol table does not have any name-mangling features (to be added
+       in the foreseeable future).
+
+*/
