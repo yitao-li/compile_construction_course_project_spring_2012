@@ -15,7 +15,9 @@
 
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
-#define FW 40
+#define FW 50
+#define SYM_OUTPUT "symtable.out"
+#define RULES_OUTPUT "rules.out"
 
 struct id_attr{
 	std::string type;
@@ -30,6 +32,8 @@ std::list<std::string> current_argv;
 
 std::map< std::string, id_attr > symt;
 
+std::fstream rules_out(RULES_OUTPUT, std::ios::out | std::ios::trunc);
+
 int yyerror(const char *);
 
 %}
@@ -42,26 +46,26 @@ int yyerror(const char *);
 
 Program
 :
-T_PROGRAM T_ID ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
+T_PROGRAM T_ID ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.' {rules_out<<"Program\n";}
 ;
 
 TypeDefinitions
 :
-T_TYPE TypeDefinition ';' _OptTypeDefinitions 
+T_TYPE TypeDefinition ';' _OptTypeDefinitions {rules_out<<"TypeDefinitions\n";}
 ;
 
 OptTypeDefinitions
 :
-/* empty */
+/* empty */ {rules_out<<"OptTypeDefinitions\n";}
 |
-TypeDefinitions
+TypeDefinitions {rules_out<<"OptTypeDefinitions\n";}
 ;
 
 _OptTypeDefinitions
 :
-/* empty */
+/* empty */ {rules_out<<"_OptTypeDefinitions\n";}
 |
-TypeDefinition ';' _OptTypeDefinitions
+TypeDefinition ';' _OptTypeDefinitions {rules_out<<"_OptTypeDefinitions\n";}
 ;
 
 TypeDefinition
@@ -73,11 +77,12 @@ T_ID {
 	symt[current_id] = {current_type, symt.size()};
 	current_type = "";
 }
+{rules_out<<"TypeDefinition\n";}
 ;
 
 VariableDeclarations
 :
-T_VAR VariableDeclaration ';' _OptVariableDeclarations
+T_VAR VariableDeclaration ';' _OptVariableDeclarations {rules_out<<"VariableDeclarations\n";}
 ;
 
 VariableDeclaration
@@ -88,42 +93,42 @@ IdentifierList ':' Type {
 	}
 	current_argv.clear();
 	current_argc = 0;
-}
+} {rules_out<<"VariableDeclaration\n";}
 ;
 
 OptVariableDeclarations
 :
-/* empty */
+/* empty */ {rules_out<<"OptVariableDeclarations\n";}
 |
-VariableDeclarations
+VariableDeclarations {rules_out<<"OptVariableDeclarations\n";}
 ;
 
 _OptVariableDeclarations
 :
-/* empty */
+/* empty */ {rules_out<<"_OptVariableDeclarations\n";}
 |
-VariableDeclaration ';' _OptVariableDeclarations
+VariableDeclaration ';' _OptVariableDeclarations {rules_out<<"_OptVariableDeclarations\n";}
 ;
 
 OptSubprogramDeclarations
 :
-/* empty */
+/* empty */ {rules_out<<"OptSubprogramDeclarations\n";}
 |
-SubprogramDeclarations
+SubprogramDeclarations {rules_out<<"OptSubprogramDeclarations\n";}
 ;
 
 SubprogramDeclarations
 :
-/* empty */
+/* empty */ {rules_out<<"SubprogramDeclarations\n";}
 |
-SubprogramDeclaration ';' SubprogramDeclarations
+SubprogramDeclaration ';' SubprogramDeclarations {rules_out<<"SubprogramDeclarations\n";}
 ;
 
 SubprogramDeclaration
 :
-ProcedureDeclaration
+ProcedureDeclaration {rules_out<<"SubprogramDeclaration\n";}
 |
-FunctionDeclaration
+FunctionDeclaration {rules_out<<"SubprogramDeclaration\n";}
 ;
 
 ProcedureDeclaration
@@ -137,7 +142,7 @@ T_PROCEDURE T_ID {
 	argc = 0;
 	current_type = "";
 	symt[std::string("procedure ").append(current_id)] = {ss.str(), symt.size()};
-}')' ';' DeclarationBody
+}')' ';' DeclarationBody {rules_out<<"ProcedureDeclaration\n";}
 ;
 
 FunctionDeclaration
@@ -150,14 +155,14 @@ T_FUNCTION T_ID {
 	argc = 0;
 	current_type = "";
 	symt[std::string("function ").append(current_id)] = {ss.str(), symt.size()};
-} ')' ':' ResultType ';' DeclarationBody
+} ')' ':' ResultType ';' DeclarationBody {rules_out<<"FunctionDeclaration\n";}
 ;
 
 DeclarationBody
 :
-Block
+Block {rules_out<<"DeclarationBody\n";}
 |
-T_FORWARD
+T_FORWARD {rules_out<<"DeclarationBody\n";}
 ;
 
 FormalParameterList
@@ -165,7 +170,7 @@ FormalParameterList
 {
 	argc = 0;
 }
-/* empty */
+/* empty */ {rules_out<<"FormalParameterList\n";}
 |
 {
 	argc = 0;
@@ -177,12 +182,12 @@ IdentifierList ':' Type {
 	current_argv.clear();
 	argc += current_argc;
 	current_argc = 0;
-}OptIdentifiers
+}OptIdentifiers {rules_out<<"FormalParameterList\n";}
 ;
 
 OptIdentifiers
 :
-/* empty */
+/* empty */ {rules_out<<"OptIdentifiers\n";}
 |
 ';' IdentifierList ':' Type {
 	for (int i = 0; i < current_argc; ++i){
@@ -192,75 +197,75 @@ OptIdentifiers
 	argc += current_argc;
 	current_argc = 0;
 }
-OptIdentifiers
+OptIdentifiers {rules_out<<"OptIdentifiers\n";}
 ;
 
 Block
 :
-CompoundStatement
+CompoundStatement {rules_out<<"Block\n";}
 |
-VariableDeclarations CompoundStatement
+VariableDeclarations CompoundStatement {rules_out<<"Block\n";}
 ;
 
 CompoundStatement
 :
-T_BEGIN StatementSequence T_END
+T_BEGIN StatementSequence T_END {rules_out<<"CompoundStatement\n";}
 ;
 
 StatementSequence
 :
-Statement Statements
+Statement Statements {rules_out<<"StatementSequence\n";}
 ;
 
 Statement
 :
-SimpleStatement
+SimpleStatement {rules_out<<"Statement\n";}
 |
-StructuredStatement
+StructuredStatement {rules_out<<"Statement\n";}
 ;
 
 SimpleStatement
 :
 /* empty */
 |
-AssignmentStatement
+AssignmentStatement {rules_out<<"SimpleStatement\n";}
 |
-ProcedureStatement
+ProcedureStatement {rules_out<<"SimpleStatement\n";}
 ;
 
 AssignmentStatement
 :
-Variable T_ASSIGNMENT Expression
+Variable T_ASSIGNMENT Expression {rules_out<<"AssignmentStatement\n";}
 ;
 
 ProcedureStatement
 :
-T_ID '(' ActualParameterList ')'
+T_ID '(' ActualParameterList ')' {rules_out<<"ProcedureStatement\n";}
 ;
 
 StructuredStatement
 :
-CompoundStatement
+CompoundStatement {rules_out<<"StructuredStatement\n";}
 |
-T_IF Expression T_THEN Statement CloseIf
+T_IF Expression T_THEN Statement CloseIf {rules_out<<"StructuredStatement\n";}
 |
-T_WHILE Expression T_DO Statement
+T_WHILE Expression T_DO Statement {rules_out<<"StructuredStatement\n";}
 |
-T_FOR T_ID T_ASSIGNMENT Expression T_TO Expression T_DO Statement
+T_FOR T_ID T_ASSIGNMENT Expression T_TO Expression T_DO Statement {rules_out<<"StructuredStatement\n";}
 ;
 
 CloseIf
 :
-/* empty */
+/* empty */ {rules_out<<"CloseIf\n";}
 |
-T_ELSE Statement
+T_ELSE Statement {rules_out<<"CloseIf\n";}
 ;
 
 Statements
 :
-/* empty */
+/* empty */ {rules_out<<"Statements\n";}
 |
-';' Statement Statements
+';' Statement Statements {rules_out<<"Statements\n";}
 ;
 
 Type   /* todo: replace literal typename with special (reserved) symbols */
@@ -270,29 +275,29 @@ T_ID {
 	if (current_type == ""){
 		current_type = type;
 	}
-}
+} {rules_out<<"Type\n";}
 |
 T_ARRAY '[' Constant T_RANGE Constant ']' T_OF {
 	current_type.append("array_of_");
 } Type {
 	current_type.append(type);
-}
+} {rules_out<<"Type\n";}
 |
 T_RECORD {
-	current_type.append("record {");
+	current_type.append("record_{");
 } FieldList T_END {
 	current_type.append("}");
-}
+} {rules_out<<"Type\n";}
 ;
 
 ResultType
 :
-T_ID
+T_ID {rules_out<<"ResultType\n";}
 ;
 
 FieldList
 :
-/* empty */
+/* empty */ {rules_out<<"FieldList\n";}
 |
 IdentifierList ':' Type {
 	for (int i = 0; i < current_argc; ++i){
@@ -301,120 +306,120 @@ IdentifierList ':' Type {
 	current_argv.clear();
 	current_argc = 0;
 }
-OptIdentifiers
+OptIdentifiers {rules_out<<"FieldList\n";}
 ;
 
 Constant
 :
-T_INT
+T_INT {rules_out<<"Constant\n";}
 |
-Sign T_INT
+Sign T_INT {rules_out<<"Constant\n";}
 ;
 
 Expression
 :
-SimpleExpression
+SimpleExpression {rules_out<<"Expression\n";}
 |
-SimpleExpression RelationalOp SimpleExpression
+SimpleExpression RelationalOp SimpleExpression {rules_out<<"Expression\n";}
 ;
 
 RelationalOp
 :
-T_RELOP
+T_RELOP {rules_out<<"RelationalOp\n";}
 |
-'='
+'=' {rules_out<<"RelationalOp\n";}
 ;
 
 SimpleExpression
 :
-Term Summand
+Term Summand {rules_out<<"SimpleExpression\n";}
 |
-Sign Term Summand
+Sign Term Summand {rules_out<<"SimpleExpression\n";}
 ;
 
 AddOp
 :
-T_ADDOP
+T_ADDOP {rules_out<<"AddOp\n";}
 |
-T_OR
+T_OR {rules_out<<"AddOp\n";}
 ;
 
 Term
 :
-Factor Multiplicand
+Factor Multiplicand {rules_out<<"Term\n";}
 ;
 
 Summand
 :
-/* empty */
+/* empty */ {rules_out<<"Summand\n";}
 |
-AddOp Term Summand
+AddOp Term Summand {rules_out<<"Summand\n";}
 ;
 
 MulOp
 :
-T_MULOP
+T_MULOP {rules_out<<"MulOp\n";}
 |
-T_DIV
+T_DIV {rules_out<<"MulOp\n";}
 |
-T_MOD
+T_MOD {rules_out<<"MulOp\n";}
 |
-T_AND
+T_AND {rules_out<<"MulOp\n";}
 ;
 
 Factor
 :
-T_INT
+T_INT {rules_out<<"Factor\n";}
 |
-T_STR
+T_STR {rules_out<<"Factor\n";}
 |
-Variable
+Variable {rules_out<<"Factor\n";}
 |
-FunctionReference
+FunctionReference {rules_out<<"Factor\n";}
 |
-T_NOT Factor
+T_NOT Factor {rules_out<<"Factor\n";}
 |
-'(' Expression ')'
+'(' Expression ')' {rules_out<<"Factor\n";}
 ;
 
 Multiplicand
 :
-/* empty */
+/* empty */ {rules_out<<"Multiplicand\n";}
 |
-MulOp Factor Multiplicand
+MulOp Factor Multiplicand {rules_out<<"Multiplicand\n";}
 ;
 
 FunctionReference
 :
-T_ID '(' ActualParameterList ')'
+T_ID '(' ActualParameterList ')' {rules_out<<"FunctionReference\n";}
 ;
 
 Variable
 :
-T_ID ComponentSelection
+T_ID ComponentSelection {rules_out<<"Variable\n";}
 ;
 
 ComponentSelection
 :
-/* empty */
+/* empty */ {rules_out<<"ComponentSelection\n";}
 |
-'.' T_ID ComponentSelection
+'.' T_ID ComponentSelection {rules_out<<"ComponentSelection\n";}
 |
-'[' Expression ']' ComponentSelection
+'[' Expression ']' ComponentSelection {rules_out<<"ComponentSelection\n";}
 ;
 
 ActualParameterList
 :
-/* empty */
+/* empty */ {rules_out<<"ActualParameterList\n";}
 |
-Expression OptExpressions
+Expression OptExpressions {rules_out<<"ActualParameterList\n";}
 ;
 
 OptExpressions
 :
-/* empty */
+/* empty */ {rules_out<<"OptExpressions\n";}
 |
-',' Expression OptExpressions
+',' Expression OptExpressions {rules_out<<"OptExpressions\n";}
 ;
 
 IdentifierList
@@ -422,24 +427,24 @@ IdentifierList
 T_ID {
 	current_argv.push_back(std::string(yytext_ptr));
 	++current_argc;
-} Identifiers
+} Identifiers {rules_out<<"IdentifierList\n";}
 ;
 
 Identifiers
 :
-/* empty */
+/* empty */ {rules_out<<"Identifiers\n";}
 |
 ',' T_ID {
 	current_argv.push_back(std::string(yytext_ptr));
 	++current_argc;
-} Identifiers
+} Identifiers {rules_out<<"Identifiers\n";}
 ;
 
 Sign
 :
-'+'
+'+' {rules_out<<"Sign\n";}
 |
-'-'
+'-' {rules_out<<"Sign\n";}
 ;
 
 %%
@@ -451,6 +456,7 @@ int yyerror(const char *s){
 
 int main(void){
 	int ret = yyparse();
+	std::fstream sym_out(SYM_OUTPUT, std::ios::out | std::ios::trunc);
 	if (ret == 1){
 		std::cout<<"\nsyntax error found\n";
 	}else if (ret == 2){
@@ -459,8 +465,11 @@ int main(void){
 		std::cout<<"\nno syntax error found\n";
 	}
 	std::cout<<"\n";
+	sym_out<<std::setw(FW)<<std::left<<"Symbol"<<std::setw(FW)<<std::left<<"Type"<<std::setw(FW)<<"Address"<<"\n\n";
 	for (std::map<std::string, id_attr>::iterator itr = symt.begin(); itr != symt.end(); ++itr){
-		std::cout<<std::setw(FW)<<std::left<<itr->first<<std::setw(FW)<<std::left<<itr->second.type<<std::setw(FW)<<std::left<<itr->second.addr<<"\n";
-	}        
+		sym_out<<std::setw(FW)<<std::left<<itr->first<<std::setw(FW)<<std::left<<itr->second.type<<std::setw(FW)<<std::left<<itr->second.addr<<"\n";
+	}
+	sym_out.close();
+	rules_out.close();
 	return 0;
 }
