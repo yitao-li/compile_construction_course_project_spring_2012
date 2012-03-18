@@ -1,1 +1,32 @@
-This is the repository for the compiler construction project of course CSCI-GA.2130, edition Spring 2012!!
+** to compile optimally **
+
+make clean
+make
+
+
+** to run on input files **
+
+./parser < lexer_test.pas
+./parser < test2.pas
+./parser < test3.pas
+
+
+** to examine output **
+
+cat symtable.out
+cat rules.out
+
+
+/*
+
+   note:
+
+    1. The current version does not complain about duplicate keys in the symbol table.
+       This should be changed in the near future (as part of error handling).
+       
+    2. Conflicts: 1 shift/reduce, 1 reduce/reduce
+
+    3. The current symbol table does not have any name-mangling features (to be added
+       in the foreseeable future).
+
+*/
