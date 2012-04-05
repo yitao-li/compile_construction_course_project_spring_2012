@@ -1,8 +1,0 @@
-Symbol                                            Type                                              Address                                           
-
-function foo                                      1                                                 4                                                 
-procedure bar                                     1                                                 5                                                 
-program lexer_test                                program                                           0                                                 
-typedef int                                       integer                                           1                                                 
-var b                                             boolean                                           3                                                 
-var i                                             integer                                           2                                                 

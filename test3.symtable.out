@@ -1,7 +1,0 @@
-Symbol                                            Type                                              Address                                           
-
-program errorfree                                 program                                           0                                                 
-typedef in                                        integer                                           2                                                 
-typedef s                                         string                                            1                                                 
-var m                                             in                                                4                                                 
-var z                                             in                                                5                                                 
