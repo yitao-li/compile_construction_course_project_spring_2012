@@ -13,8 +13,8 @@ var
 
 function foo(n : in) : in; 
 begin
-   n := b + 1  {error: b has not been declared }
-   foo := n 	
+   n := b + 1;  {error: b has not been declared }
+   foo := n; 	
 end;
 
 begin

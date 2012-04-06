@@ -499,8 +499,13 @@ int yyerror(const char *s){
 }
 
 int UpdateVar(void){
+	std::string s;
 	for (std::list<std::string>::iterator itr = current_argv.begin(); itr != current_argv.end(); ++itr){
-		current_scope -> symt[std::string("var ").append(*itr)] = {type, current_scope -> symt.size()};
+		if (LookupVar(current_scope, s = std::string("var ").append(*itr))){
+			yyerror(std::string("error: redeclaration of '").append(*itr).append("'").c_str());
+		}else{
+			current_scope -> symt[s] = {type, current_scope -> symt.size()};
+		}
 	}
 	current_argv.clear();
 	current_argc = 0;
