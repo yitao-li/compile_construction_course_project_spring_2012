@@ -38,20 +38,19 @@ typedef struct scope{
 scope prog_scope, *current_scope = &prog_scope;
 
 int argc = 0, current_argc = 0, current_sgn, current_const, current_l, current_u;
-std::string current_id, current_type, type;
+std::string current_id, current_type, type, current_typename;
 std::list<std::string> current_argv;
 std::fstream rules_out(RULES_OUTPUT, std::ios::out | std::ios::trunc);
 
 template <class T>
-inline std::string to_string (const T& t){
+inline std::string to_string (const T & t){
 	std::stringstream ss;
 	ss << t;
 	return ss.str();
 }
 
-int yyerror(const char *);
-int UpdateVar(void), UpdateType(void);
-std::string UpdateTypeDef(const std::string);
+int yyerror(const char *), UpdateVar(void), UpdateType(void), LookupVar(scope *, const std::string);
+std::string LookupTypeDef(const std::string);
 
 %}
 
@@ -66,12 +65,10 @@ Program
 T_PROGRAM T_ID
 {
 	current_scope -> symt[std::string("program ").append(std::string(yytext_ptr))] = {"program", current_scope -> symt.size()};
-	std::cout<<"current scope == "<<current_scope<<std::endl;
 }
 ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
 {
 	rules_out<<"Program\n";
-	std::cout<<"current scope == "<<current_scope<<std::endl;
 }
 ;
 
@@ -97,10 +94,14 @@ TypeDefinition ';' _OptTypeDefinitions {rules_out<<"_OptTypeDefinitions\n";}
 TypeDefinition
 :
 T_ID {
-	current_id = std::string("typedef ").append(std::string(yytext_ptr));
+	current_id = std::string("typedef ").append(current_typename = std::string(yytext_ptr));
 } '=' Type
 {
 	current_scope -> symt[current_id] = {current_type, current_scope -> symt.size()};
+	prog_scope.symt[current_typename] = {LookupTypeDef(current_type), current_scope -> symt.size()};
+	
+	//std::cout<<current_typename<<" IS "<<LookupTypeDef(current_type)<<std::endl;
+	
 	current_type = "";
 }
 {rules_out<<"TypeDefinition\n";}
@@ -199,14 +200,6 @@ FormalParameterList
 	argc = 0;
 }
 IdentifierList ':' Type {
-/*
-	for (int i = 0; i < current_argc; ++i){
-		current_type.append(type).append(",");
-	}
-	current_argv.clear();
-	argc += current_argc;
-	current_argc = 0;
-*/
 	UpdateType();
 }OptIdentifiers {rules_out<<"FormalParameterList\n";}
 ;
@@ -216,14 +209,6 @@ OptIdentifiers
 /* empty */ {rules_out<<"OptIdentifiers\n";}
 |
 ';' IdentifierList ':' Type {
-/*
-	for (int i = 0; i < current_argc; ++i){
-		current_type.append(type).append(",");
-	}
-	current_argv.clear();
-	argc += current_argc;
-	current_argc = 0;
-*/
 	UpdateType();
 }
 OptIdentifiers {rules_out<<"OptIdentifiers\n";}
@@ -322,11 +307,11 @@ T_ARRAY '[' Constant{current_l = current_const;} T_RANGE Constant{current_u = cu
 	current_type.append("array[").append(to_string<int>(current_l)).append("..").append(to_string<int>(current_u)).append("]_of_");
 } Type {rules_out<<"Type\n";}
 {
-	current_type.append(type);
+	current_type.append(LookupTypeDef(type));
 }
 |
 T_RECORD {
-	current_type.append("record_{");
+	current_type.append("record{");
 } FieldList T_END {
 	current_type.append("}");
 } {rules_out<<"Type\n";}
@@ -343,7 +328,8 @@ FieldList
 |
 IdentifierList ':' Type {
 	for (int i = 0; i < current_argc; ++i){
-		current_type.append(type).append(",");
+	//std::cout<<"line 350: current_argc == "<<current_argc<<std::endl;
+		current_type.append(LookupTypeDef(type)).append(",");
 	}
 	current_argv.clear();
 	current_argc = 0;
@@ -523,7 +509,7 @@ int UpdateVar(void){
 
 int UpdateType(void){
 	for (int i = 0; i < current_argc; ++i){
-		current_type.append(type).append(",");
+		current_type.append(LookupTypeDef(type)).append(",");
 	}
 	current_argv.clear();
 	argc += current_argc;
@@ -531,13 +517,26 @@ int UpdateType(void){
 	return 0;
 }
 
-std::string UpdateTypeDef(const std::string type){
-	std::string eq_type = type;	
+int LookupVar(scope *current_scope, const std::string name){
+	while (current_scope){
+		if (current_scope -> symt.find(name) != current_scope -> symt.end()){
+			return 1;    //found
+		}
+		current_scope = current_scope -> p;
+	}
+	return 0;  //not found
+}
+
+std::string LookupTypeDef(const std::string type){
+	std::string eq_type = type;
+//	std::cout<<"LOOKING UP "<<eq_type<<std::endl;
 	std::map< std::string, id_attr >::iterator it;
 	while ( (it = prog_scope.symt.find(eq_type)) != prog_scope.symt.end() ){
 		if (it -> second.type == eq_type){
 			return eq_type;
 		}
+		//std::cout<<"LOOKING UP "<<eq_type<<std::endl;
+		eq_type = it -> second.type;
 	}
 	return eq_type;   //type is not pre-defined
 }
