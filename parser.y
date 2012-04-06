@@ -19,15 +19,23 @@
 #define SYM_OUTPUT "symtable.out"
 #define RULES_OUTPUT "rules.out"
 
-struct id_attr{
+typedef struct id_attr{
 	std::string type;
 	size_t addr;
-};
+} id_attr;
+
+typedef struct scope{
+	std::map< std::string, id_attr > symt;
+	scope *p;
+	scope(void):p(NULL){}
+	scope(scope *_p):p(_p){}
+} scope;
+
+scope global_scope, *current_scope = &global_scope;
 
 int argc = 0, current_argc = 0;
 std::string current_id, current_type, type;
 std::list<std::string> current_argv;
-std::map< std::string, id_attr > symt;
 std::fstream rules_out(RULES_OUTPUT, std::ios::out | std::ios::trunc);
 
 int yyerror(const char *);
@@ -43,7 +51,18 @@ int UpdateVar(void), UpdateType(void);
 
 Program
 :
-T_PROGRAM T_ID{symt[std::string("program ").append(std::string(yytext_ptr))] = {"program", symt.size()};} ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.' {rules_out<<"Program\n";}
+T_PROGRAM T_ID
+{
+	current_scope -> symt[std::string("program ").append(std::string(yytext_ptr))] = {"program", current_scope -> symt.size()};
+	std::cout<<"ENTERING "<<(current_scope)<<std::endl;
+	current_scope = new scope(current_scope);
+}
+';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
+{
+	rules_out<<"Program\n";
+	current_scope = current_scope -> p;
+	std::cout<<"ENTERING "<<(current_scope)<<std::endl;
+}
 ;
 
 TypeDefinitions
@@ -71,7 +90,7 @@ T_ID {
 	current_id = std::string("typedef ").append(std::string(yytext_ptr));
 } '=' Type
 {
-	symt[current_id] = {current_type, symt.size()};
+	current_scope -> symt[current_id] = {current_type, current_scope -> symt.size()};
 	current_type = "";
 }
 {rules_out<<"TypeDefinition\n";}
@@ -132,7 +151,7 @@ T_PROCEDURE T_ID {
 	ss << argc;
 	argc = 0;
 	current_type = "";
-	symt[std::string("procedure ").append(current_id)] = {ss.str(), symt.size()};
+	current_scope -> symt[std::string("procedure ").append(current_id)] = {ss.str(), current_scope -> symt.size()};
 }')' ';' DeclarationBody {rules_out<<"ProcedureDeclaration\n";}
 ;
 
@@ -145,15 +164,21 @@ T_FUNCTION T_ID {
 	ss << argc;
 	argc = 0;
 	current_type = "";
-	symt[std::string("function ").append(current_id)] = {ss.str(), symt.size()};
+	current_scope -> symt[std::string("function ").append(current_id)] = {ss.str(), current_scope -> symt.size()};
 } ')' ':' ResultType ';' DeclarationBody {rules_out<<"FunctionDeclaration\n";}
 ;
 
 DeclarationBody
 :
-Block {rules_out<<"DeclarationBody\n";}
+Block
+{
+	rules_out<<"DeclarationBody\n";
+}
 |
-T_FORWARD {rules_out<<"DeclarationBody\n";}
+T_FORWARD
+{
+	rules_out<<"DeclarationBody\n";
+}
 ;
 
 FormalParameterList
@@ -199,9 +224,20 @@ OptIdentifiers {rules_out<<"OptIdentifiers\n";}
 
 Block
 :
-CompoundStatement {rules_out<<"Block\n";}
+{
+	current_scope = new scope(current_scope);
+}
+CompoundStatement
+{
+	rules_out<<"Block\n";
+	current_scope = current_scope -> p;
+}
 |
-VariableDeclarations CompoundStatement {rules_out<<"Block\n";}
+VariableDeclarations CompoundStatement
+{
+	rules_out<<"Block\n";
+	current_scope = current_scope -> p;
+}
 ;
 
 CompoundStatement
@@ -453,7 +489,7 @@ int yyerror(const char *s){
 
 int UpdateVar(void){
 	for (std::list<std::string>::iterator itr = current_argv.begin(); itr != current_argv.end(); ++itr){
-		symt[std::string("var ").append(*itr)] = {type, symt.size()};
+		current_scope -> symt[std::string("var ").append(*itr)] = {type, current_scope -> symt.size()};
 	}
 	current_argv.clear();
 	current_argc = 0;
@@ -482,7 +518,7 @@ int main(void){
 	}
 	std::cout<<"\n";
 	sym_out<<std::setw(FW)<<std::left<<"Symbol"<<std::setw(FW)<<std::left<<"Type"<<std::setw(FW)<<"Address"<<"\n\n";
-	for (std::map<std::string, id_attr>::iterator itr = symt.begin(); itr != symt.end(); ++itr){
+	for (std::map<std::string, id_attr>::iterator itr = current_scope -> symt.begin(); itr != current_scope -> symt.end(); ++itr){
 		sym_out<<std::setw(FW)<<std::left<<itr->first<<std::setw(FW)<<std::left<<itr->second.type<<std::setw(FW)<<std::left<<itr->second.addr<<"\n";
 	}
 	sym_out.close();
