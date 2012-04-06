@@ -269,8 +269,9 @@ Variable T_ASSIGNMENT Expression {rules_out<<"AssignmentStatement\n";}
 ProcedureStatement
 :
 T_ID {
-	if (!LookupId(current_scope, std::string("procedure ").append(current_id)) && !LookupId(current_scope, std::string("function ").append(current_id))){
-		yyerror(std::string("error: procedure or function ").append(current_id).append(" is not defined").c_str());
+//std::cout<<"line"<<yylineno<<": procedure statement\n";
+	if (!LookupId(current_scope, std::string("procedure ").append(prev_id)) && !LookupId(current_scope, std::string("function ").append(prev_id))){
+		yyerror(std::string("procedure or function '").append(prev_id).append("' is not defined").c_str());
 		++s_err;
 	}
 }
@@ -289,7 +290,7 @@ T_FOR T_ID
 {
 	std::string var_name(yytext_ptr);
 	if (!LookupId(current_scope, std::string("var ").append(var_name))){
-		yyerror(std::string("error: variable ").append(var_name).append(" is not declared").c_str());
+		yyerror(std::string("variable ").append(var_name).append(" is not declared").c_str());
 		++s_err;
 	}
 }
@@ -339,7 +340,7 @@ ResultType
 T_ID {
 	std::string type_name(yytext_ptr);
 	if (!LookupId(current_scope, type_name)){
-		yyerror(std::string("error: result type '").append(type_name).append("' is not declared").c_str());
+		yyerror(std::string("invalid return type: type '").append(type_name).append("' is not declared").c_str());
 		++s_err;
 	}
 	rules_out<<"ResultType\n";
@@ -452,8 +453,9 @@ FunctionReference
 :
 T_ID 
 {
+//HERE	std::cout<<"fn ref: "<<prev_id<<std::endl;
 	if (!LookupId(current_scope, std::string("function ").append(prev_id))){  // <-- must be a function
-		yyerror(std::string("invalid function reference '").append(prev_id).append("': ").append("function '").append(prev_id).append("' is not defined").c_str());
+		yyerror(std::string("invalid function reference: function '").append(prev_id).append("' is not defined").c_str());
 		++s_err;
 	}
 }
@@ -462,14 +464,22 @@ T_ID
 
 Variable
 :
-T_ID ComponentSelection {rules_out<<"Variable\n";}
+T_ID
+{
+	if (!LookupId(current_scope, std::string("var ").append(prev_id))){  // <-- must be a variable
+		yyerror(std::string("variable '").append(prev_id).append("' is not declared").c_str());
+		std::cout<<"(this might not count as a semantic error)"<<std::endl;
+		++s_err;
+	}
+}
+ComponentSelection {rules_out<<"Variable\n";}
 ;
 
 ComponentSelection
 :
 /* empty */ {rules_out<<"ComponentSelection\n";}
 |
-'.' T_ID ComponentSelection {rules_out<<"ComponentSelection\n";}
+'.' T_ID ComponentSelection {rules_out<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
 |
 '[' Expression ']' ComponentSelection {rules_out<<"ComponentSelection\n";}
 ;
@@ -524,7 +534,7 @@ Sign
 %%
 
 int yyerror(const char *s){
-	std::cerr<<"line "<<yylineno<<": "<<s<<std::endl;
+	std::cerr<<"line "<<yylineno<<":\nerror: "<<s<<"\n";
 	return 0;
 }
 
@@ -532,7 +542,7 @@ int UpdateVar(void){
 	std::string s;
 	for (std::vector<std::string>::iterator itr = current_argv.begin(); itr != current_argv.end(); ++itr){
 		if (LookupId(current_scope, s = std::string("var ").append(*itr))){
-			yyerror(std::string("error: redeclaration of '").append(*itr).append("'").c_str());
+			yyerror(std::string("redeclaration of variable '").append(*itr).append("'").c_str());
 			++s_err;
 		}else{
 			current_scope -> symt[s] = {LookupTypeDef(type), current_scope -> symt.size()};
@@ -547,7 +557,7 @@ int UpdateType(scope *next_scope){
 	if (next_scope){     /* <-- this is for FormalParameterList only */
 		for (int i = 0; i < current_argc; ++i){
 			current_type.append(LookupTypeDef(type)).append(",");    //assumption: formal parameter overwrites variable declaration with the same name that is outside the current scope
-			next_scope -> symt[current_argv[i]] = {LookupTypeDef(type), current_scope -> symt.size()};
+			next_scope -> symt[std::string("var ").append(current_argv[i])] = {LookupTypeDef(type), current_scope -> symt.size()};
 		}
 	}else{
 		for (int i = 0; i < current_argc; ++i){
