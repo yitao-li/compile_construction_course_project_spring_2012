@@ -9,7 +9,7 @@
 #include <iostream>
 #include <iomanip>
 #include <map>   //data structure for symbol table
-#include <list>
+#include <vector>
 #include <string>
 #include "lex.h"
 
@@ -31,15 +31,17 @@ typedef struct scope{
 		symt["integer"] = {"integer", 0};    //predefined types
 		symt["string"] = {"string", 1};
 		symt["boolean"] = {"boolean", 2};
+		symt["true"] = {"true", 3};
+		symt["false"] = {"false", 3};
 	}
 	scope(scope *_p):p(_p){}
 } scope;
 
-scope prog_scope, *current_scope = &prog_scope;
+scope prog_scope, *current_scope = &prog_scope, *next_scope;
 
-int argc = 0, current_argc = 0, current_sgn, current_const, current_l, current_u;
+int argc = 0, current_argc = 0, s_err = 0, current_sgn, current_const, current_l, current_u;
 std::string current_id, current_type, type, current_typename;
-std::list<std::string> current_argv;
+std::vector<std::string> current_argv;
 std::fstream rules_out(RULES_OUTPUT, std::ios::out | std::ios::trunc);
 
 template <class T>
@@ -49,7 +51,7 @@ inline std::string to_string (const T & t){
 	return ss.str();
 }
 
-int yyerror(const char *), UpdateVar(void), UpdateType(void), LookupVar(scope *, const std::string);
+int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string);
 std::string LookupTypeDef(const std::string);
 
 %}
@@ -99,9 +101,6 @@ T_ID {
 {
 	current_scope -> symt[current_id] = {current_type, current_scope -> symt.size()};
 	prog_scope.symt[current_typename] = {LookupTypeDef(current_type), current_scope -> symt.size()};
-	
-	//std::cout<<current_typename<<" IS "<<LookupTypeDef(current_type)<<std::endl;
-	
 	current_type = "";
 }
 {rules_out<<"TypeDefinition\n";}
@@ -157,6 +156,7 @@ ProcedureDeclaration
 T_PROCEDURE T_ID
 {
 	current_id = std::string(yytext_ptr);
+	next_scope = new scope(current_scope);
 }
 '(' FormalParameterList {
 	current_scope -> symt[std::string("procedure ").append(current_id)] = {to_string<int>(argc), current_scope -> symt.size()};
@@ -167,8 +167,10 @@ T_PROCEDURE T_ID
 
 FunctionDeclaration
 :
-T_FUNCTION T_ID {
+T_FUNCTION T_ID
+{
 	current_id = std::string(yytext_ptr);
+	next_scope = new scope(current_scope);
 } '(' FormalParameterList {
 	current_scope -> symt[std::string("function ").append(current_id)] = {to_string<int>(argc), current_scope -> symt.size()};
 	current_type = "";
@@ -200,7 +202,7 @@ FormalParameterList
 	argc = 0;
 }
 IdentifierList ':' Type {
-	UpdateType();
+	UpdateType(next_scope);
 }OptIdentifiers {rules_out<<"FormalParameterList\n";}
 ;
 
@@ -209,7 +211,7 @@ OptIdentifiers
 /* empty */ {rules_out<<"OptIdentifiers\n";}
 |
 ';' IdentifierList ':' Type {
-	UpdateType();
+	UpdateType(next_scope);
 }
 OptIdentifiers {rules_out<<"OptIdentifiers\n";}
 ;
@@ -217,7 +219,8 @@ OptIdentifiers {rules_out<<"OptIdentifiers\n";}
 Block
 :
 {
-	current_scope = new scope(current_scope);
+	current_scope = next_scope;
+	next_scope = NULL;
 }
 CompoundStatement
 {
@@ -265,7 +268,13 @@ Variable T_ASSIGNMENT Expression {rules_out<<"AssignmentStatement\n";}
 
 ProcedureStatement
 :
-T_ID '(' ActualParameterList ')' {rules_out<<"ProcedureStatement\n";}
+T_ID {
+	if (!LookupId(current_scope, std::string("procedure ").append(current_id))){
+		std::cerr<<"error: procedure "<<current_id<<" not declared\n";
+		++s_err;
+	}
+}
+ '(' ActualParameterList ')' {rules_out<<"ProcedureStatement\n";}
 ;
 
 StructuredStatement
@@ -276,7 +285,15 @@ T_IF Expression T_THEN Statement CloseIf {rules_out<<"StructuredStatement\n";}
 |
 T_WHILE Expression T_DO Statement {rules_out<<"StructuredStatement\n";}
 |
-T_FOR T_ID T_ASSIGNMENT Expression T_TO Expression T_DO Statement {rules_out<<"StructuredStatement\n";}
+T_FOR T_ID
+{
+	std::string var_name(yytext_ptr);
+	if (!LookupId(current_scope, std::string("var ").append(var_name))){
+		std::cerr<<"error: variable "<<var_name<<" not declared\n";
+		++s_err;
+	}
+}
+T_ASSIGNMENT Expression T_TO Expression T_DO Statement {rules_out<<"StructuredStatement\n";}
 ;
 
 CloseIf
@@ -328,7 +345,6 @@ FieldList
 |
 IdentifierList ':' Type {
 	for (int i = 0; i < current_argc; ++i){
-	//std::cout<<"line 350: current_argc == "<<current_argc<<std::endl;
 		current_type.append(LookupTypeDef(type)).append(",");
 	}
 	current_argv.clear();
@@ -500,11 +516,12 @@ int yyerror(const char *s){
 
 int UpdateVar(void){
 	std::string s;
-	for (std::list<std::string>::iterator itr = current_argv.begin(); itr != current_argv.end(); ++itr){
-		if (LookupVar(current_scope, s = std::string("var ").append(*itr))){
+	for (std::vector<std::string>::iterator itr = current_argv.begin(); itr != current_argv.end(); ++itr){
+		if (LookupId(current_scope, s = std::string("var ").append(*itr))){
 			yyerror(std::string("error: redeclaration of '").append(*itr).append("'").c_str());
+			++s_err;
 		}else{
-			current_scope -> symt[s] = {type, current_scope -> symt.size()};
+			current_scope -> symt[s] = {LookupTypeDef(type), current_scope -> symt.size()};
 		}
 	}
 	current_argv.clear();
@@ -512,9 +529,16 @@ int UpdateVar(void){
 	return 0;
 }
 
-int UpdateType(void){
-	for (int i = 0; i < current_argc; ++i){
-		current_type.append(LookupTypeDef(type)).append(",");
+int UpdateType(scope *next_scope){
+	if (next_scope){     /* <-- this is for FormalParameterList only */
+		for (int i = 0; i < current_argc; ++i){
+			current_type.append(LookupTypeDef(type)).append(",");    //assumption: formal parameter overwrites variable declaration with the same name that is outside the current scope
+			next_scope -> symt[current_argv[i]] = {LookupTypeDef(type), current_scope -> symt.size()};
+		}
+	}else{
+		for (int i = 0; i < current_argc; ++i){
+			current_type.append(LookupTypeDef(type)).append(",");
+		}
 	}
 	current_argv.clear();
 	argc += current_argc;
@@ -522,7 +546,7 @@ int UpdateType(void){
 	return 0;
 }
 
-int LookupVar(scope *current_scope, const std::string name){
+int LookupId(scope *current_scope, const std::string name){
 	while (current_scope){
 		if (current_scope -> symt.find(name) != current_scope -> symt.end()){
 			return 1;    //found
@@ -534,13 +558,11 @@ int LookupVar(scope *current_scope, const std::string name){
 
 std::string LookupTypeDef(const std::string type){
 	std::string eq_type = type;
-//	std::cout<<"LOOKING UP "<<eq_type<<std::endl;
 	std::map< std::string, id_attr >::iterator it;
 	while ( (it = prog_scope.symt.find(eq_type)) != prog_scope.symt.end() ){
 		if (it -> second.type == eq_type){
 			return eq_type;
 		}
-		//std::cout<<"LOOKING UP "<<eq_type<<std::endl;
 		eq_type = it -> second.type;
 	}
 	return eq_type;   //type is not pre-defined
@@ -550,11 +572,16 @@ int main(void){
 	int ret = yyparse();
 	std::fstream sym_out(SYM_OUTPUT, std::ios::out | std::ios::trunc);
 	if (ret == 1){
-		std::cout<<"\nsyntax error found\n";
+		std::cerr<<"\nsyntax error found\n";
 	}else if (ret == 2){
-		std::cout<<"\nmemory exhausted\n";
+		std::cerr<<"\nmemory exhausted\n";
 	}else{
 		std::cout<<"\nno syntax error found\n";
+	}
+	if (s_err){
+		std::cerr<<"\n"<<s_err<<" semantic error(s) found\n";
+	}else{
+		std::cout<<"\nno semantic error found\n";
 	}
 	std::cout<<"\n";
 	sym_out<<std::setw(FW)<<std::left<<"Symbol"<<std::setw(FW)<<std::left<<"Type"<<std::setw(FW)<<"Address"<<"\n\n";
