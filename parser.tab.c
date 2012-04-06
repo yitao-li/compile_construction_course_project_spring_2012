@@ -94,11 +94,15 @@ typedef struct id_attr{
 typedef struct scope{
 	std::map< std::string, id_attr > symt;
 	scope *p;
-	scope(void):p(NULL){}
+	scope(void):p(NULL){
+		symt["integer"] = {"integer", 0};    //predefined types
+		symt["string"] = {"string", 1};
+		symt["boolean"] = {"boolean", 2};
+	}
 	scope(scope *_p):p(_p){}
 } scope;
 
-scope global_scope, *current_scope = &global_scope;
+scope prog_scope, *current_scope = &prog_scope;
 
 int argc = 0, current_argc = 0, current_sgn, current_const, current_l, current_u;
 std::string current_id, current_type, type;
@@ -114,11 +118,12 @@ inline std::string to_string (const T& t){
 
 int yyerror(const char *);
 int UpdateVar(void), UpdateType(void);
+std::string UpdateTypeDef(const std::string);
 
 
 
 /* Line 189 of yacc.c  */
-#line 122 "parser.tab.c"
+#line 127 "parser.tab.c"
 
 /* Enabling traces.  */
 #ifndef YYDEBUG
@@ -193,7 +198,7 @@ typedef int YYSTYPE;
 
 
 /* Line 264 of yacc.c  */
-#line 197 "parser.tab.c"
+#line 202 "parser.tab.c"
 
 #ifdef short
 # undef short
@@ -520,18 +525,18 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,    62,    62,    61,    75,    80,    82,    87,    89,    94,
-      97,    94,   106,   111,   111,   116,   118,   123,   125,   130,
-     132,   137,   139,   144,   146,   152,   155,   151,   164,   166,
-     164,   175,   180,   188,   188,   193,   196,   193,   211,   213,
-     213,   229,   229,   238,   247,   252,   257,   259,   264,   266,
-     268,   273,   278,   283,   285,   287,   289,   294,   296,   301,
-     303,   308,   308,   315,   315,   316,   318,   315,   323,   325,
-     323,   332,   337,   339,   339,   351,   357,   366,   368,   373,
-     375,   380,   382,   387,   389,   394,   399,   401,   406,   408,
-     410,   412,   417,   419,   421,   423,   425,   427,   432,   434,
-     439,   444,   449,   451,   453,   458,   460,   465,   467,   472,
-     472,   480,   482,   482,   490,   496
+       0,    67,    67,    66,    80,    85,    87,    92,    94,    99,
+     102,    99,   111,   116,   116,   121,   123,   128,   130,   135,
+     137,   142,   144,   149,   151,   157,   160,   156,   169,   171,
+     169,   180,   185,   193,   193,   198,   201,   198,   216,   218,
+     218,   234,   234,   243,   252,   257,   262,   264,   269,   271,
+     273,   278,   283,   288,   290,   292,   294,   299,   301,   306,
+     308,   313,   313,   320,   320,   321,   323,   320,   328,   330,
+     328,   337,   342,   344,   344,   356,   362,   371,   373,   378,
+     380,   385,   387,   392,   394,   399,   404,   406,   411,   413,
+     415,   417,   422,   424,   426,   428,   430,   432,   437,   439,
+     444,   449,   454,   456,   458,   463,   465,   470,   472,   477,
+     477,   485,   487,   487,   495,   501
 };
 #endif
 
@@ -1582,62 +1587,62 @@ yyreduce:
         case 2:
 
 /* Line 1455 of yacc.c  */
-#line 62 "parser.y"
+#line 67 "parser.y"
     {
 	current_scope -> symt[std::string("program ").append(std::string(yytext_ptr))] = {"program", current_scope -> symt.size()};
-	current_scope = new scope(current_scope);
+	std::cout<<"current scope == "<<current_scope<<std::endl;
 ;}
     break;
 
   case 3:
 
 /* Line 1455 of yacc.c  */
-#line 67 "parser.y"
+#line 72 "parser.y"
     {
 	rules_out<<"Program\n";
-	current_scope = current_scope -> p;
+	std::cout<<"current scope == "<<current_scope<<std::endl;
 ;}
     break;
 
   case 4:
 
 /* Line 1455 of yacc.c  */
-#line 75 "parser.y"
+#line 80 "parser.y"
     {rules_out<<"TypeDefinitions\n";;}
     break;
 
   case 5:
 
 /* Line 1455 of yacc.c  */
-#line 80 "parser.y"
+#line 85 "parser.y"
     {rules_out<<"OptTypeDefinitions\n";;}
     break;
 
   case 6:
 
 /* Line 1455 of yacc.c  */
-#line 82 "parser.y"
+#line 87 "parser.y"
     {rules_out<<"OptTypeDefinitions\n";;}
     break;
 
   case 7:
 
 /* Line 1455 of yacc.c  */
-#line 87 "parser.y"
+#line 92 "parser.y"
     {rules_out<<"_OptTypeDefinitions\n";;}
     break;
 
   case 8:
 
 /* Line 1455 of yacc.c  */
-#line 89 "parser.y"
+#line 94 "parser.y"
     {rules_out<<"_OptTypeDefinitions\n";;}
     break;
 
   case 9:
 
 /* Line 1455 of yacc.c  */
-#line 94 "parser.y"
+#line 99 "parser.y"
     {
 	current_id = std::string("typedef ").append(std::string(yytext_ptr));
 ;}
@@ -1646,7 +1651,7 @@ yyreduce:
   case 10:
 
 /* Line 1455 of yacc.c  */
-#line 97 "parser.y"
+#line 102 "parser.y"
     {
 	current_scope -> symt[current_id] = {current_type, current_scope -> symt.size()};
 	current_type = "";
@@ -1656,105 +1661,105 @@ yyreduce:
   case 11:
 
 /* Line 1455 of yacc.c  */
-#line 101 "parser.y"
+#line 106 "parser.y"
     {rules_out<<"TypeDefinition\n";;}
     break;
 
   case 12:
 
 /* Line 1455 of yacc.c  */
-#line 106 "parser.y"
+#line 111 "parser.y"
     {rules_out<<"VariableDeclarations\n";;}
     break;
 
   case 13:
 
 /* Line 1455 of yacc.c  */
-#line 111 "parser.y"
+#line 116 "parser.y"
     {UpdateVar();;}
     break;
 
   case 14:
 
 /* Line 1455 of yacc.c  */
-#line 111 "parser.y"
+#line 116 "parser.y"
     {rules_out<<"VariableDeclaration\n";;}
     break;
 
   case 15:
 
 /* Line 1455 of yacc.c  */
-#line 116 "parser.y"
+#line 121 "parser.y"
     {rules_out<<"OptVariableDeclarations\n";;}
     break;
 
   case 16:
 
 /* Line 1455 of yacc.c  */
-#line 118 "parser.y"
+#line 123 "parser.y"
     {rules_out<<"OptVariableDeclarations\n";;}
     break;
 
   case 17:
 
 /* Line 1455 of yacc.c  */
-#line 123 "parser.y"
+#line 128 "parser.y"
     {rules_out<<"_OptVariableDeclarations\n";;}
     break;
 
   case 18:
 
 /* Line 1455 of yacc.c  */
-#line 125 "parser.y"
+#line 130 "parser.y"
     {rules_out<<"_OptVariableDeclarations\n";;}
     break;
 
   case 19:
 
 /* Line 1455 of yacc.c  */
-#line 130 "parser.y"
+#line 135 "parser.y"
     {rules_out<<"OptSubprogramDeclarations\n";;}
     break;
 
   case 20:
 
 /* Line 1455 of yacc.c  */
-#line 132 "parser.y"
+#line 137 "parser.y"
     {rules_out<<"OptSubprogramDeclarations\n";;}
     break;
 
   case 21:
 
 /* Line 1455 of yacc.c  */
-#line 137 "parser.y"
+#line 142 "parser.y"
     {rules_out<<"SubprogramDeclarations\n";;}
     break;
 
   case 22:
 
 /* Line 1455 of yacc.c  */
-#line 139 "parser.y"
+#line 144 "parser.y"
     {rules_out<<"SubprogramDeclarations\n";;}
     break;
 
   case 23:
 
 /* Line 1455 of yacc.c  */
-#line 144 "parser.y"
+#line 149 "parser.y"
     {rules_out<<"SubprogramDeclaration\n";;}
     break;
 
   case 24:
 
 /* Line 1455 of yacc.c  */
-#line 146 "parser.y"
+#line 151 "parser.y"
     {rules_out<<"SubprogramDeclaration\n";;}
     break;
 
   case 25:
 
 /* Line 1455 of yacc.c  */
-#line 152 "parser.y"
+#line 157 "parser.y"
     {
 	current_id = std::string(yytext_ptr);
 ;}
@@ -1763,7 +1768,7 @@ yyreduce:
   case 26:
 
 /* Line 1455 of yacc.c  */
-#line 155 "parser.y"
+#line 160 "parser.y"
     {
 	current_scope -> symt[std::string("procedure ").append(current_id)] = {to_string<int>(argc), current_scope -> symt.size()};
 	current_type = "";
@@ -1774,14 +1779,14 @@ yyreduce:
   case 27:
 
 /* Line 1455 of yacc.c  */
-#line 159 "parser.y"
+#line 164 "parser.y"
     {rules_out<<"ProcedureDeclaration\n";;}
     break;
 
   case 28:
 
 /* Line 1455 of yacc.c  */
-#line 164 "parser.y"
+#line 169 "parser.y"
     {
 	current_id = std::string(yytext_ptr);
 ;}
@@ -1790,7 +1795,7 @@ yyreduce:
   case 29:
 
 /* Line 1455 of yacc.c  */
-#line 166 "parser.y"
+#line 171 "parser.y"
     {
 	current_scope -> symt[std::string("function ").append(current_id)] = {to_string<int>(argc), current_scope -> symt.size()};
 	current_type = "";
@@ -1801,20 +1806,11 @@ yyreduce:
   case 30:
 
 /* Line 1455 of yacc.c  */
-#line 170 "parser.y"
+#line 175 "parser.y"
     {rules_out<<"FunctionDeclaration\n";;}
     break;
 
   case 31:
-
-/* Line 1455 of yacc.c  */
-#line 176 "parser.y"
-    {
-	rules_out<<"DeclarationBody\n";
-;}
-    break;
-
-  case 32:
 
 /* Line 1455 of yacc.c  */
 #line 181 "parser.y"
@@ -1823,23 +1819,16 @@ yyreduce:
 ;}
     break;
 
-  case 33:
+  case 32:
 
 /* Line 1455 of yacc.c  */
-#line 188 "parser.y"
+#line 186 "parser.y"
     {
-	argc = 0;
+	rules_out<<"DeclarationBody\n";
 ;}
     break;
 
-  case 34:
-
-/* Line 1455 of yacc.c  */
-#line 191 "parser.y"
-    {rules_out<<"FormalParameterList\n";;}
-    break;
-
-  case 35:
+  case 33:
 
 /* Line 1455 of yacc.c  */
 #line 193 "parser.y"
@@ -1848,10 +1837,26 @@ yyreduce:
 ;}
     break;
 
-  case 36:
+  case 34:
 
 /* Line 1455 of yacc.c  */
 #line 196 "parser.y"
+    {rules_out<<"FormalParameterList\n";;}
+    break;
+
+  case 35:
+
+/* Line 1455 of yacc.c  */
+#line 198 "parser.y"
+    {
+	argc = 0;
+;}
+    break;
+
+  case 36:
+
+/* Line 1455 of yacc.c  */
+#line 201 "parser.y"
     {
 /*
 	for (int i = 0; i < current_argc; ++i){
@@ -1868,21 +1873,21 @@ yyreduce:
   case 37:
 
 /* Line 1455 of yacc.c  */
-#line 206 "parser.y"
+#line 211 "parser.y"
     {rules_out<<"FormalParameterList\n";;}
     break;
 
   case 38:
 
 /* Line 1455 of yacc.c  */
-#line 211 "parser.y"
+#line 216 "parser.y"
     {rules_out<<"OptIdentifiers\n";;}
     break;
 
   case 39:
 
 /* Line 1455 of yacc.c  */
-#line 213 "parser.y"
+#line 218 "parser.y"
     {
 /*
 	for (int i = 0; i < current_argc; ++i){
@@ -1899,14 +1904,14 @@ yyreduce:
   case 40:
 
 /* Line 1455 of yacc.c  */
-#line 224 "parser.y"
+#line 229 "parser.y"
     {rules_out<<"OptIdentifiers\n";;}
     break;
 
   case 41:
 
 /* Line 1455 of yacc.c  */
-#line 229 "parser.y"
+#line 234 "parser.y"
     {
 	current_scope = new scope(current_scope);
 ;}
@@ -1915,7 +1920,7 @@ yyreduce:
   case 42:
 
 /* Line 1455 of yacc.c  */
-#line 233 "parser.y"
+#line 238 "parser.y"
     {
 	rules_out<<"Block\n";
 	current_scope = current_scope -> p;
@@ -1925,7 +1930,7 @@ yyreduce:
   case 43:
 
 /* Line 1455 of yacc.c  */
-#line 239 "parser.y"
+#line 244 "parser.y"
     {
 	rules_out<<"Block\n";
 	current_scope = current_scope -> p;
@@ -1935,126 +1940,126 @@ yyreduce:
   case 44:
 
 /* Line 1455 of yacc.c  */
-#line 247 "parser.y"
+#line 252 "parser.y"
     {rules_out<<"CompoundStatement\n";;}
     break;
 
   case 45:
 
 /* Line 1455 of yacc.c  */
-#line 252 "parser.y"
+#line 257 "parser.y"
     {rules_out<<"StatementSequence\n";;}
     break;
 
   case 46:
 
 /* Line 1455 of yacc.c  */
-#line 257 "parser.y"
+#line 262 "parser.y"
     {rules_out<<"Statement\n";;}
     break;
 
   case 47:
 
 /* Line 1455 of yacc.c  */
-#line 259 "parser.y"
+#line 264 "parser.y"
     {rules_out<<"Statement\n";;}
     break;
 
   case 48:
 
 /* Line 1455 of yacc.c  */
-#line 264 "parser.y"
+#line 269 "parser.y"
     {rules_out<<"SimpleStatement\n";;}
     break;
 
   case 49:
 
 /* Line 1455 of yacc.c  */
-#line 266 "parser.y"
+#line 271 "parser.y"
     {rules_out<<"SimpleStatement\n";;}
     break;
 
   case 50:
 
 /* Line 1455 of yacc.c  */
-#line 268 "parser.y"
+#line 273 "parser.y"
     {rules_out<<"SimpleStatement\n";;}
     break;
 
   case 51:
 
 /* Line 1455 of yacc.c  */
-#line 273 "parser.y"
+#line 278 "parser.y"
     {rules_out<<"AssignmentStatement\n";;}
     break;
 
   case 52:
 
 /* Line 1455 of yacc.c  */
-#line 278 "parser.y"
+#line 283 "parser.y"
     {rules_out<<"ProcedureStatement\n";;}
     break;
 
   case 53:
 
 /* Line 1455 of yacc.c  */
-#line 283 "parser.y"
+#line 288 "parser.y"
     {rules_out<<"StructuredStatement\n";;}
     break;
 
   case 54:
 
 /* Line 1455 of yacc.c  */
-#line 285 "parser.y"
+#line 290 "parser.y"
     {rules_out<<"StructuredStatement\n";;}
     break;
 
   case 55:
 
 /* Line 1455 of yacc.c  */
-#line 287 "parser.y"
+#line 292 "parser.y"
     {rules_out<<"StructuredStatement\n";;}
     break;
 
   case 56:
 
 /* Line 1455 of yacc.c  */
-#line 289 "parser.y"
+#line 294 "parser.y"
     {rules_out<<"StructuredStatement\n";;}
     break;
 
   case 57:
 
 /* Line 1455 of yacc.c  */
-#line 294 "parser.y"
+#line 299 "parser.y"
     {rules_out<<"CloseIf\n";;}
     break;
 
   case 58:
 
 /* Line 1455 of yacc.c  */
-#line 296 "parser.y"
+#line 301 "parser.y"
     {rules_out<<"CloseIf\n";;}
     break;
 
   case 59:
 
 /* Line 1455 of yacc.c  */
-#line 301 "parser.y"
+#line 306 "parser.y"
     {rules_out<<"Statements\n";;}
     break;
 
   case 60:
 
 /* Line 1455 of yacc.c  */
-#line 303 "parser.y"
+#line 308 "parser.y"
     {rules_out<<"Statements\n";;}
     break;
 
   case 61:
 
 /* Line 1455 of yacc.c  */
-#line 308 "parser.y"
+#line 313 "parser.y"
     {
 	type = std::string(yytext_ptr);
 	if (current_type == ""){
@@ -2066,28 +2071,28 @@ yyreduce:
   case 62:
 
 /* Line 1455 of yacc.c  */
-#line 313 "parser.y"
+#line 318 "parser.y"
     {rules_out<<"Type\n";;}
     break;
 
   case 63:
 
 /* Line 1455 of yacc.c  */
-#line 315 "parser.y"
+#line 320 "parser.y"
     {current_l = current_const;;}
     break;
 
   case 64:
 
 /* Line 1455 of yacc.c  */
-#line 315 "parser.y"
+#line 320 "parser.y"
     {current_u = current_const;;}
     break;
 
   case 65:
 
 /* Line 1455 of yacc.c  */
-#line 316 "parser.y"
+#line 321 "parser.y"
     {
 	current_type.append("array[").append(to_string<int>(current_l)).append("..").append(to_string<int>(current_u)).append("]_of_");
 ;}
@@ -2096,14 +2101,14 @@ yyreduce:
   case 66:
 
 /* Line 1455 of yacc.c  */
-#line 318 "parser.y"
+#line 323 "parser.y"
     {rules_out<<"Type\n";;}
     break;
 
   case 67:
 
 /* Line 1455 of yacc.c  */
-#line 319 "parser.y"
+#line 324 "parser.y"
     {
 	current_type.append(type);
 ;}
@@ -2112,7 +2117,7 @@ yyreduce:
   case 68:
 
 /* Line 1455 of yacc.c  */
-#line 323 "parser.y"
+#line 328 "parser.y"
     {
 	current_type.append("record_{");
 ;}
@@ -2121,7 +2126,7 @@ yyreduce:
   case 69:
 
 /* Line 1455 of yacc.c  */
-#line 325 "parser.y"
+#line 330 "parser.y"
     {
 	current_type.append("}");
 ;}
@@ -2130,28 +2135,28 @@ yyreduce:
   case 70:
 
 /* Line 1455 of yacc.c  */
-#line 327 "parser.y"
+#line 332 "parser.y"
     {rules_out<<"Type\n";;}
     break;
 
   case 71:
 
 /* Line 1455 of yacc.c  */
-#line 332 "parser.y"
+#line 337 "parser.y"
     {rules_out<<"ResultType\n";;}
     break;
 
   case 72:
 
 /* Line 1455 of yacc.c  */
-#line 337 "parser.y"
+#line 342 "parser.y"
     {rules_out<<"FieldList\n";;}
     break;
 
   case 73:
 
 /* Line 1455 of yacc.c  */
-#line 339 "parser.y"
+#line 344 "parser.y"
     {
 	for (int i = 0; i < current_argc; ++i){
 		current_type.append(type).append(",");
@@ -2164,14 +2169,14 @@ yyreduce:
   case 74:
 
 /* Line 1455 of yacc.c  */
-#line 346 "parser.y"
+#line 351 "parser.y"
     {rules_out<<"FieldList\n";;}
     break;
 
   case 75:
 
 /* Line 1455 of yacc.c  */
-#line 352 "parser.y"
+#line 357 "parser.y"
     {
 	current_const = atoi(yytext_ptr);
 	rules_out<<"Constant\n";
@@ -2181,7 +2186,7 @@ yyreduce:
   case 76:
 
 /* Line 1455 of yacc.c  */
-#line 358 "parser.y"
+#line 363 "parser.y"
     {
 	current_const = current_sgn * atoi(yytext_ptr);
 	rules_out<<"Constant\n";
@@ -2191,231 +2196,231 @@ yyreduce:
   case 77:
 
 /* Line 1455 of yacc.c  */
-#line 366 "parser.y"
+#line 371 "parser.y"
     {rules_out<<"Expression\n";;}
     break;
 
   case 78:
 
 /* Line 1455 of yacc.c  */
-#line 368 "parser.y"
+#line 373 "parser.y"
     {rules_out<<"Expression\n";;}
     break;
 
   case 79:
 
 /* Line 1455 of yacc.c  */
-#line 373 "parser.y"
+#line 378 "parser.y"
     {rules_out<<"RelationalOp\n";;}
     break;
 
   case 80:
 
 /* Line 1455 of yacc.c  */
-#line 375 "parser.y"
+#line 380 "parser.y"
     {rules_out<<"RelationalOp\n";;}
     break;
 
   case 81:
 
 /* Line 1455 of yacc.c  */
-#line 380 "parser.y"
+#line 385 "parser.y"
     {rules_out<<"SimpleExpression\n";;}
     break;
 
   case 82:
 
 /* Line 1455 of yacc.c  */
-#line 382 "parser.y"
+#line 387 "parser.y"
     {rules_out<<"SimpleExpression\n";;}
     break;
 
   case 83:
 
 /* Line 1455 of yacc.c  */
-#line 387 "parser.y"
+#line 392 "parser.y"
     {rules_out<<"AddOp\n";;}
     break;
 
   case 84:
 
 /* Line 1455 of yacc.c  */
-#line 389 "parser.y"
+#line 394 "parser.y"
     {rules_out<<"AddOp\n";;}
     break;
 
   case 85:
 
 /* Line 1455 of yacc.c  */
-#line 394 "parser.y"
+#line 399 "parser.y"
     {rules_out<<"Term\n";;}
     break;
 
   case 86:
 
 /* Line 1455 of yacc.c  */
-#line 399 "parser.y"
+#line 404 "parser.y"
     {rules_out<<"Summand\n";;}
     break;
 
   case 87:
 
 /* Line 1455 of yacc.c  */
-#line 401 "parser.y"
+#line 406 "parser.y"
     {rules_out<<"Summand\n";;}
     break;
 
   case 88:
 
 /* Line 1455 of yacc.c  */
-#line 406 "parser.y"
+#line 411 "parser.y"
     {rules_out<<"MulOp\n";;}
     break;
 
   case 89:
 
 /* Line 1455 of yacc.c  */
-#line 408 "parser.y"
+#line 413 "parser.y"
     {rules_out<<"MulOp\n";;}
     break;
 
   case 90:
 
 /* Line 1455 of yacc.c  */
-#line 410 "parser.y"
+#line 415 "parser.y"
     {rules_out<<"MulOp\n";;}
     break;
 
   case 91:
 
 /* Line 1455 of yacc.c  */
-#line 412 "parser.y"
+#line 417 "parser.y"
     {rules_out<<"MulOp\n";;}
     break;
 
   case 92:
 
 /* Line 1455 of yacc.c  */
-#line 417 "parser.y"
+#line 422 "parser.y"
     {rules_out<<"Factor\n";;}
     break;
 
   case 93:
 
 /* Line 1455 of yacc.c  */
-#line 419 "parser.y"
+#line 424 "parser.y"
     {rules_out<<"Factor\n";;}
     break;
 
   case 94:
 
 /* Line 1455 of yacc.c  */
-#line 421 "parser.y"
+#line 426 "parser.y"
     {rules_out<<"Factor\n";;}
     break;
 
   case 95:
 
 /* Line 1455 of yacc.c  */
-#line 423 "parser.y"
+#line 428 "parser.y"
     {rules_out<<"Factor\n";;}
     break;
 
   case 96:
 
 /* Line 1455 of yacc.c  */
-#line 425 "parser.y"
+#line 430 "parser.y"
     {rules_out<<"Factor\n";;}
     break;
 
   case 97:
 
 /* Line 1455 of yacc.c  */
-#line 427 "parser.y"
+#line 432 "parser.y"
     {rules_out<<"Factor\n";;}
     break;
 
   case 98:
 
 /* Line 1455 of yacc.c  */
-#line 432 "parser.y"
+#line 437 "parser.y"
     {rules_out<<"Multiplicand\n";;}
     break;
 
   case 99:
 
 /* Line 1455 of yacc.c  */
-#line 434 "parser.y"
+#line 439 "parser.y"
     {rules_out<<"Multiplicand\n";;}
     break;
 
   case 100:
 
 /* Line 1455 of yacc.c  */
-#line 439 "parser.y"
+#line 444 "parser.y"
     {rules_out<<"FunctionReference\n";;}
     break;
 
   case 101:
 
 /* Line 1455 of yacc.c  */
-#line 444 "parser.y"
+#line 449 "parser.y"
     {rules_out<<"Variable\n";;}
     break;
 
   case 102:
 
 /* Line 1455 of yacc.c  */
-#line 449 "parser.y"
+#line 454 "parser.y"
     {rules_out<<"ComponentSelection\n";;}
     break;
 
   case 103:
 
 /* Line 1455 of yacc.c  */
-#line 451 "parser.y"
+#line 456 "parser.y"
     {rules_out<<"ComponentSelection\n";;}
     break;
 
   case 104:
 
 /* Line 1455 of yacc.c  */
-#line 453 "parser.y"
+#line 458 "parser.y"
     {rules_out<<"ComponentSelection\n";;}
     break;
 
   case 105:
 
 /* Line 1455 of yacc.c  */
-#line 458 "parser.y"
+#line 463 "parser.y"
     {rules_out<<"ActualParameterList\n";;}
     break;
 
   case 106:
 
 /* Line 1455 of yacc.c  */
-#line 460 "parser.y"
+#line 465 "parser.y"
     {rules_out<<"ActualParameterList\n";;}
     break;
 
   case 107:
 
 /* Line 1455 of yacc.c  */
-#line 465 "parser.y"
+#line 470 "parser.y"
     {rules_out<<"OptExpressions\n";;}
     break;
 
   case 108:
 
 /* Line 1455 of yacc.c  */
-#line 467 "parser.y"
+#line 472 "parser.y"
     {rules_out<<"OptExpressions\n";;}
     break;
 
   case 109:
 
 /* Line 1455 of yacc.c  */
-#line 472 "parser.y"
+#line 477 "parser.y"
     {
 	current_argv.push_back(std::string(yytext_ptr));
 	++current_argc;
@@ -2425,21 +2430,21 @@ yyreduce:
   case 110:
 
 /* Line 1455 of yacc.c  */
-#line 475 "parser.y"
+#line 480 "parser.y"
     {rules_out<<"IdentifierList\n";;}
     break;
 
   case 111:
 
 /* Line 1455 of yacc.c  */
-#line 480 "parser.y"
+#line 485 "parser.y"
     {rules_out<<"Identifiers\n";;}
     break;
 
   case 112:
 
 /* Line 1455 of yacc.c  */
-#line 482 "parser.y"
+#line 487 "parser.y"
     {
 	current_argv.push_back(std::string(yytext_ptr));
 	++current_argc;
@@ -2449,14 +2454,14 @@ yyreduce:
   case 113:
 
 /* Line 1455 of yacc.c  */
-#line 485 "parser.y"
+#line 490 "parser.y"
     {rules_out<<"Identifiers\n";;}
     break;
 
   case 114:
 
 /* Line 1455 of yacc.c  */
-#line 491 "parser.y"
+#line 496 "parser.y"
     {
 	current_sgn = 1;
 	rules_out<<"Sign\n";
@@ -2466,7 +2471,7 @@ yyreduce:
   case 115:
 
 /* Line 1455 of yacc.c  */
-#line 497 "parser.y"
+#line 502 "parser.y"
     {
 	current_sgn = -1;
 	rules_out<<"Sign\n";
@@ -2476,7 +2481,7 @@ yyreduce:
 
 
 /* Line 1455 of yacc.c  */
-#line 2480 "parser.tab.c"
+#line 2485 "parser.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -2688,7 +2693,7 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 503 "parser.y"
+#line 508 "parser.y"
 
 
 int yyerror(const char *s){
@@ -2715,6 +2720,17 @@ int UpdateType(void){
 	return 0;
 }
 
+std::string UpdateTypeDef(const std::string type){
+	std::string eq_type = type;	
+	std::map< std::string, id_attr >::iterator it;
+	while ( (it = prog_scope.symt.find(eq_type)) != prog_scope.symt.end() ){
+		if (it -> second.type == eq_type){
+			return eq_type;
+		}
+	}
+	return eq_type;   //type is not pre-defined
+}
+	
 int main(void){
 	int ret = yyparse();
 	std::fstream sym_out(SYM_OUTPUT, std::ios::out | std::ios::trunc);

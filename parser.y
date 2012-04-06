@@ -27,11 +27,15 @@ typedef struct id_attr{
 typedef struct scope{
 	std::map< std::string, id_attr > symt;
 	scope *p;
-	scope(void):p(NULL){}
+	scope(void):p(NULL){
+		symt["integer"] = {"integer", 0};    //predefined types
+		symt["string"] = {"string", 1};
+		symt["boolean"] = {"boolean", 2};
+	}
 	scope(scope *_p):p(_p){}
 } scope;
 
-scope global_scope, *current_scope = &global_scope;
+scope prog_scope, *current_scope = &prog_scope;
 
 int argc = 0, current_argc = 0, current_sgn, current_const, current_l, current_u;
 std::string current_id, current_type, type;
@@ -47,6 +51,7 @@ inline std::string to_string (const T& t){
 
 int yyerror(const char *);
 int UpdateVar(void), UpdateType(void);
+std::string UpdateTypeDef(const std::string);
 
 %}
 
@@ -61,12 +66,12 @@ Program
 T_PROGRAM T_ID
 {
 	current_scope -> symt[std::string("program ").append(std::string(yytext_ptr))] = {"program", current_scope -> symt.size()};
-	current_scope = new scope(current_scope);
+	std::cout<<"current scope == "<<current_scope<<std::endl;
 }
 ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
 {
 	rules_out<<"Program\n";
-	current_scope = current_scope -> p;
+	std::cout<<"current scope == "<<current_scope<<std::endl;
 }
 ;
 
@@ -526,6 +531,17 @@ int UpdateType(void){
 	return 0;
 }
 
+std::string UpdateTypeDef(const std::string type){
+	std::string eq_type = type;	
+	std::map< std::string, id_attr >::iterator it;
+	while ( (it = prog_scope.symt.find(eq_type)) != prog_scope.symt.end() ){
+		if (it -> second.type == eq_type){
+			return eq_type;
+		}
+	}
+	return eq_type;   //type is not pre-defined
+}
+	
 int main(void){
 	int ret = yyparse();
 	std::fstream sym_out(SYM_OUTPUT, std::ios::out | std::ios::trunc);
