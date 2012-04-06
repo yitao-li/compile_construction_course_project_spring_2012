@@ -153,11 +153,9 @@ T_PROCEDURE T_ID
 	current_id = std::string(yytext_ptr);
 }
 '(' FormalParameterList {
-	std::stringstream ss;
-	ss << argc;
-	argc = 0;
+	current_scope -> symt[std::string("procedure ").append(current_id)] = {to_string<int>(argc), current_scope -> symt.size()};
 	current_type = "";
-	current_scope -> symt[std::string("procedure ").append(current_id)] = {ss.str(), current_scope -> symt.size()};
+	argc = 0;
 }')' ';' DeclarationBody {rules_out<<"ProcedureDeclaration\n";}
 ;
 
@@ -166,11 +164,9 @@ FunctionDeclaration
 T_FUNCTION T_ID {
 	current_id = std::string(yytext_ptr);
 } '(' FormalParameterList {
-	std::stringstream ss;
-	ss << argc;
-	argc = 0;
+	current_scope -> symt[std::string("function ").append(current_id)] = {to_string<int>(argc), current_scope -> symt.size()};
 	current_type = "";
-	current_scope -> symt[std::string("function ").append(current_id)] = {ss.str(), current_scope -> symt.size()};
+	argc = 0;
 } ')' ':' ResultType ';' DeclarationBody {rules_out<<"FunctionDeclaration\n";}
 ;
 
