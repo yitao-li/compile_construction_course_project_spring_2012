@@ -40,7 +40,7 @@ typedef struct scope{
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
 
 int argc = 0, current_argc = 0, s_err = 0, current_sgn, current_const, current_l, current_u;
-std::string current_id, current_type, type, current_typename;
+std::string current_id, current_type, type, current_typename, exp_type, lhs_type, ret_type;
 std::vector<std::string> current_argv;
 std::fstream rules_out(RULES_OUTPUT, std::ios::out | std::ios::trunc);
 
@@ -51,7 +51,7 @@ inline std::string to_string (const T & t){
 	return ss.str();
 }
 
-int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string);
+int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
 std::string LookupTypeDef(const std::string);
 
 %}
@@ -159,7 +159,7 @@ T_PROCEDURE T_ID
 	next_scope = new scope(current_scope);
 }
 '(' FormalParameterList {
-	current_scope -> symt[std::string("procedure ").append(current_id)] = {to_string<int>(argc), current_scope -> symt.size()};
+	current_scope -> symt[std::string("procedure ").append(current_id)] = {"void", current_scope -> symt.size()};  //procedure returns type 'void'
 	current_type = "";
 	argc = 0;
 }')' ';' DeclarationBody {rules_out<<"ProcedureDeclaration\n";}
@@ -171,11 +171,12 @@ T_FUNCTION T_ID
 {
 	current_id = std::string(yytext_ptr);
 	next_scope = new scope(current_scope);
-} '(' FormalParameterList {
-	current_scope -> symt[std::string("function ").append(current_id)] = {to_string<int>(argc), current_scope -> symt.size()};
+} '(' FormalParameterList ')' ':' ResultType
+{
+	current_scope -> symt[std::string("function ").append(current_id)] = {exp_type, current_scope -> symt.size()};
 	current_type = "";
 	argc = 0;
-} ')' ':' ResultType ';' DeclarationBody {rules_out<<"FunctionDeclaration\n";}
+}';' DeclarationBody {rules_out<<"FunctionDeclaration\n";}
 ;
 
 DeclarationBody
@@ -263,14 +264,25 @@ ProcedureStatement {rules_out<<"SimpleStatement\n";}
 
 AssignmentStatement
 :
-Variable T_ASSIGNMENT Expression {rules_out<<"AssignmentStatement\n";}
+Variable
+{
+	lhs_type = exp_type;
+}
+T_ASSIGNMENT Expression
+{
+	if (lhs_type != "" && exp_type != "" && lhs_type != exp_type){  //if both lhs and rhs are syntatically valid (hence have types)
+		yyerror(std::string("incompatible types in assignment of ").append(exp_type).append(" to ").append(lhs_type).c_str());
+	}
+	lhs_type = "";
+	exp_type = "";
+	rules_out<<"AssignmentStatement\n";
+}
 ;
 
 ProcedureStatement
 :
 T_ID {
-//std::cout<<"line"<<yylineno<<": procedure statement\n";
-	if (!LookupId(current_scope, std::string("procedure ").append(prev_id)) && !LookupId(current_scope, std::string("function ").append(prev_id))){
+	if (!LookupId(current_scope, std::string("procedure ").append(prev_id), exp_type) && !LookupId(current_scope, std::string("function ").append(prev_id), exp_type)){
 		yyerror(std::string("procedure or function '").append(prev_id).append("' is not defined").c_str());
 		++s_err;
 	}
@@ -289,7 +301,7 @@ T_WHILE Expression T_DO Statement {rules_out<<"StructuredStatement\n";}
 T_FOR T_ID
 {
 	std::string var_name(yytext_ptr);
-	if (!LookupId(current_scope, std::string("var ").append(var_name))){
+	if (!LookupId(current_scope, std::string("var ").append(var_name), exp_type)){
 		yyerror(std::string("variable ").append(var_name).append(" is not declared").c_str());
 		++s_err;
 	}
@@ -339,7 +351,8 @@ ResultType
 :
 T_ID {
 	std::string type_name(yytext_ptr);
-	if (!LookupId(current_scope, type_name)){
+	exp_type = LookupTypeDef(type_name);
+	if (!LookupId(current_scope, type_name, exp_type)){
 		yyerror(std::string("invalid return type: type '").append(type_name).append("' is not declared").c_str());
 		++s_err;
 	}
@@ -378,9 +391,16 @@ Sign T_INT
 
 Expression
 :
-SimpleExpression {rules_out<<"Expression\n";}
+SimpleExpression
+{
+	rules_out<<"Expression\n";
+}
 |
-SimpleExpression RelationalOp SimpleExpression {rules_out<<"Expression\n";}
+SimpleExpression RelationalOp SimpleExpression
+{
+	exp_type = "boolean";
+	rules_out<<"Expression\n";
+}
 ;
 
 RelationalOp
@@ -429,15 +449,27 @@ T_AND {rules_out<<"MulOp\n";}
 
 Factor
 :
-T_INT {rules_out<<"Factor\n";}
+T_INT
+{
+	exp_type = "integer";
+	rules_out<<"Factor\n";
+}
 |
-T_STR {rules_out<<"Factor\n";}
+T_STR
+{
+	exp_type = "string";
+	rules_out<<"Factor\n";
+}
 |
 Variable {rules_out<<"Factor\n";}
 |
 FunctionReference {rules_out<<"Factor\n";}
 |
-T_NOT Factor {rules_out<<"Factor\n";}
+T_NOT Factor
+{
+	//exp_type = "boolean";  /* not sure if this is necessary */
+	rules_out<<"Factor\n";
+}
 |
 '(' Expression ')' {rules_out<<"Factor\n";}
 ;
@@ -453,20 +485,20 @@ FunctionReference
 :
 T_ID 
 {
-//HERE	std::cout<<"fn ref: "<<prev_id<<std::endl;
-	if (!LookupId(current_scope, std::string("function ").append(prev_id))){  // <-- must be a function
+	if (!LookupId(current_scope, std::string("function ").append(prev_id), exp_type)){  // <-- must be a function
 		yyerror(std::string("invalid function reference: function '").append(prev_id).append("' is not defined").c_str());
 		++s_err;
 	}
+	ret_type = exp_type;
 }
-'(' ActualParameterList ')' {rules_out<<"FunctionReference\n";}
+'(' ActualParameterList ')' {exp_type = ret_type; rules_out<<"FunctionReference\n";}
 ;
 
 Variable
 :
 T_ID
 {
-	if (!LookupId(current_scope, std::string("var ").append(prev_id))){  // <-- must be a variable
+	if (!LookupId(current_scope, std::string("var ").append(prev_id), exp_type)){  // <-- must be a variable
 		yyerror(std::string("variable '").append(prev_id).append("' is not declared").c_str());
 		std::cout<<"(this might not count as a semantic error)"<<std::endl;
 		++s_err;
@@ -534,14 +566,14 @@ Sign
 %%
 
 int yyerror(const char *s){
-	std::cerr<<"line "<<yylineno<<":\nerror: "<<s<<"\n";
+	std::cerr<<"\nline "<<yylineno<<":\nerror: "<<s<<"\n";
 	return 0;
 }
 
 int UpdateVar(void){
 	std::string s;
 	for (std::vector<std::string>::iterator itr = current_argv.begin(); itr != current_argv.end(); ++itr){
-		if (LookupId(current_scope, s = std::string("var ").append(*itr))){
+		if (LookupId(current_scope, s = std::string("var ").append(*itr), exp_type)){
 			yyerror(std::string("redeclaration of variable '").append(*itr).append("'").c_str());
 			++s_err;
 		}else{
@@ -570,9 +602,11 @@ int UpdateType(scope *next_scope){
 	return 0;
 }
 
-int LookupId(scope *current_scope, const std::string name){
+int LookupId(scope *current_scope, const std::string name, std::string & type){
+	std::map< std::string, id_attr >::iterator it;
 	while (current_scope){
-		if (current_scope -> symt.find(name) != current_scope -> symt.end()){
+		if ( (it = current_scope -> symt.find(name)) != current_scope -> symt.end()){
+			type = it -> second.type;
 			return 1;    //found
 		}
 		current_scope = current_scope -> p;
