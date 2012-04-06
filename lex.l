@@ -7,7 +7,7 @@
 
 int yywrap(void);
 
-int ln = 1;
+std::string prev_id;
 
 %}
 
@@ -140,7 +140,7 @@ var	{return T_VAR;}
 while	{return T_WHILE;}
 
 
-{ID}	{return T_ID;}
+{ID}	{prev_id = std::string(yytext_ptr); return T_ID;}
 
 
 {INT}	{return T_INT;}

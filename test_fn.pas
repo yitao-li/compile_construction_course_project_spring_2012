@@ -1,12 +1,11 @@
 program errorfree;
 type
-	s = string;
 	r = record
 		a,b : integer;
-		c   : s
+		c   : string
 	end;
-	y = array[1..10] of r;
-	
+	y = array[1..10] of integer;
+	s = string;
 var
 	z : s;
 
@@ -18,7 +17,7 @@ end;
 function foo2(a : integer; c : string) : y; 
 begin
    while a do
-       bar()
+       a := bar()
 end;
 
 function foo3(a, b : integer) : s; forward;

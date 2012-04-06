@@ -269,12 +269,10 @@ Variable T_ASSIGNMENT Expression {rules_out<<"AssignmentStatement\n";}
 ProcedureStatement
 :
 T_ID {
-//	std::cout<<"DIE"<<std::endl;
 	if (!LookupId(current_scope, std::string("procedure ").append(current_id)) && !LookupId(current_scope, std::string("function ").append(current_id))){
-		yyerror(std::string("error: procedure or function ").append(current_id).append(" is not declared").c_str());
+		yyerror(std::string("error: procedure or function ").append(current_id).append(" is not defined").c_str());
 		++s_err;
 	}
-//	std::cout<<"ProcedureStatement: "<<current_id<<std::endl;
 }
  '(' ActualParameterList ')' {rules_out<<"ProcedureStatement\n";}
 ;
@@ -452,7 +450,14 @@ MulOp Factor Multiplicand {rules_out<<"Multiplicand\n";}
 
 FunctionReference
 :
-T_ID '(' ActualParameterList ')' {rules_out<<"FunctionReference\n";}
+T_ID 
+{
+	if (!LookupId(current_scope, std::string("function ").append(prev_id))){  // <-- must be a function
+		yyerror(std::string("invalid function reference '").append(prev_id).append("': ").append("function '").append(prev_id).append("' is not defined").c_str());
+		++s_err;
+	}
+}
+'(' ActualParameterList ')' {rules_out<<"FunctionReference\n";}
 ;
 
 Variable

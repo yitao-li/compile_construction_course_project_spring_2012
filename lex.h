@@ -600,7 +600,7 @@ char *yytext_ptr;
 
 int yywrap(void);
 
-int ln = 1;
+std::string prev_id;
 
 /* regex definitions */
 /* WARNING: ASCII WHITESPACE CHARS ONLY (UNICODE ONES NOT INCLUDED) */
@@ -1031,7 +1031,7 @@ YY_RULE_SETUP
 case 26:
 YY_RULE_SETUP
 #line 143 "lex.l"
-{return T_ID;}
+{prev_id = std::string(yytext_ptr); return T_ID;}
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
