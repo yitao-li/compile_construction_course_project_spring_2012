@@ -4,6 +4,7 @@ LDFLAGS=
 BISON_FLAGS=-d -v
 
 FLEX=flex
+FLEX_FLAGS=-l
 FLEX_OUTPUT=lex.h
 
 BISON=bison
@@ -20,7 +21,7 @@ $(EXECUTABLE): $(SOURCES:.l=.h) $(SOURCES:.y=.o)
 	$(CC) $(LDFLAGS) $(BISON_OUTPUT_O) -o $@
 
 .l.h:
-	$(FLEX) -o $(FLEX_OUTPUT) $<
+	$(FLEX) $(FLEX_FLAGS) -o $(FLEX_OUTPUT) $<
 
 .y.o:
 	$(BISON) $(BISON_FLAGS) $< && $(CC) $(CFLAGS) $(BISON_OUTPUT_C)

@@ -269,10 +269,12 @@ Variable T_ASSIGNMENT Expression {rules_out<<"AssignmentStatement\n";}
 ProcedureStatement
 :
 T_ID {
-	if (!LookupId(current_scope, std::string("procedure ").append(current_id))){
-		std::cerr<<"error: procedure "<<current_id<<" not declared\n";
+//	std::cout<<"DIE"<<std::endl;
+	if (!LookupId(current_scope, std::string("procedure ").append(current_id)) && !LookupId(current_scope, std::string("function ").append(current_id))){
+		yyerror(std::string("error: procedure or function ").append(current_id).append(" is not declared").c_str());
 		++s_err;
 	}
+//	std::cout<<"ProcedureStatement: "<<current_id<<std::endl;
 }
  '(' ActualParameterList ')' {rules_out<<"ProcedureStatement\n";}
 ;
@@ -289,7 +291,7 @@ T_FOR T_ID
 {
 	std::string var_name(yytext_ptr);
 	if (!LookupId(current_scope, std::string("var ").append(var_name))){
-		std::cerr<<"error: variable "<<var_name<<" not declared\n";
+		yyerror(std::string("error: variable ").append(var_name).append(" is not declared").c_str());
 		++s_err;
 	}
 }
@@ -336,7 +338,14 @@ T_RECORD {
 
 ResultType
 :
-T_ID {rules_out<<"ResultType\n";}
+T_ID {
+	std::string type_name(yytext_ptr);
+	if (!LookupId(current_scope, type_name)){
+		yyerror(std::string("error: result type '").append(type_name).append("' is not declared").c_str());
+		++s_err;
+	}
+	rules_out<<"ResultType\n";
+}
 ;
 
 FieldList
@@ -510,7 +519,7 @@ Sign
 %%
 
 int yyerror(const char *s){
-	std::cerr<<s<<std::endl;
+	std::cerr<<"line "<<yylineno<<": "<<s<<std::endl;
 	return 0;
 }
 

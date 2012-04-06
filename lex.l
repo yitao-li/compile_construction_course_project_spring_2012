@@ -7,6 +7,8 @@
 
 int yywrap(void);
 
+int ln = 1;
+
 %}
 
 
