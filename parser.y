@@ -33,10 +33,17 @@ typedef struct scope{
 
 scope global_scope, *current_scope = &global_scope;
 
-int argc = 0, current_argc = 0;
+int argc = 0, current_argc = 0, current_sgn, current_const, current_l, current_u;
 std::string current_id, current_type, type;
 std::list<std::string> current_argv;
 std::fstream rules_out(RULES_OUTPUT, std::ios::out | std::ios::trunc);
+
+template <class T>
+inline std::string to_string (const T& t){
+	std::stringstream ss;
+	ss << t;
+	return ss.str();
+}
 
 int yyerror(const char *);
 int UpdateVar(void), UpdateType(void);
@@ -54,14 +61,12 @@ Program
 T_PROGRAM T_ID
 {
 	current_scope -> symt[std::string("program ").append(std::string(yytext_ptr))] = {"program", current_scope -> symt.size()};
-	std::cout<<"ENTERING "<<(current_scope)<<std::endl;
 	current_scope = new scope(current_scope);
 }
 ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
 {
 	rules_out<<"Program\n";
 	current_scope = current_scope -> p;
-	std::cout<<"ENTERING "<<(current_scope)<<std::endl;
 }
 ;
 
@@ -143,9 +148,10 @@ FunctionDeclaration {rules_out<<"SubprogramDeclaration\n";}
 
 ProcedureDeclaration
 :
-T_PROCEDURE T_ID {
+T_PROCEDURE T_ID
+{
 	current_id = std::string(yytext_ptr);
-	}
+}
 '(' FormalParameterList {
 	std::stringstream ss;
 	ss << argc;
@@ -310,11 +316,13 @@ T_ID {
 	}
 } {rules_out<<"Type\n";}
 |
-T_ARRAY '[' Constant T_RANGE Constant ']' T_OF {
-	current_type.append("array_of_");
-} Type {
+T_ARRAY '[' Constant{current_l = current_const;} T_RANGE Constant{current_u = current_const;} ']' T_OF
+{
+	current_type.append("array[").append(to_string<int>(current_l)).append("..").append(to_string<int>(current_u)).append("]_of_");
+} Type {rules_out<<"Type\n";}
+{
 	current_type.append(type);
-} {rules_out<<"Type\n";}
+}
 |
 T_RECORD {
 	current_type.append("record_{");
@@ -344,9 +352,17 @@ OptIdentifiers {rules_out<<"FieldList\n";}
 
 Constant
 :
-T_INT {rules_out<<"Constant\n";}
+T_INT
+{
+	current_const = atoi(yytext_ptr);
+	rules_out<<"Constant\n";
+}
 |
-Sign T_INT {rules_out<<"Constant\n";}
+Sign T_INT
+{
+	current_const = current_sgn * atoi(yytext_ptr);
+	rules_out<<"Constant\n";
+}
 ;
 
 Expression
@@ -475,9 +491,17 @@ Identifiers
 
 Sign
 :
-'+' {rules_out<<"Sign\n";}
+'+'
+{
+	current_sgn = 1;
+	rules_out<<"Sign\n";
+}
 |
-'-' {rules_out<<"Sign\n";}
+'-'
+{
+	current_sgn = -1;
+	rules_out<<"Sign\n";
+}
 ;
 
 %%
