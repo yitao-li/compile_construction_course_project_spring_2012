@@ -22,18 +22,21 @@
 
 typedef struct id_attr{
 	std::string type;
+	std::map< std::string, std::string > field_list;
 	size_t addr;
+	id_attr(const std::string _type, const size_t _addr):type(_type), addr(_addr){}
+	id_attr(void):type(""), addr(0){}
 } id_attr;
 
 typedef struct scope{
 	std::map< std::string, id_attr > symt;
 	scope *p;
 	scope(void):p(NULL){
-		symt["integer"] = {"integer", 0};    //predefined types
-		symt["string"] = {"string", 1};
-		symt["boolean"] = {"boolean", 2};
-		symt["true"] = {"true", 3};
-		symt["false"] = {"false", 3};
+		symt["integer"] = id_attr("integer", 0);    //predefined types
+		symt["string"] = id_attr("string", 1);
+		symt["boolean"] = id_attr("boolean", 2);
+		symt["true"] = id_attr("true", 3);
+		symt["false"] = id_attr("false", 4);
 	}
 	scope(scope *_p):p(_p){}
 } scope;
@@ -41,7 +44,8 @@ typedef struct scope{
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
 
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, current_sgn, current_const, current_l, current_u;
-std::string current_id, current_type, current_ret, type, current_typename, exp_type, lhs_type, ret_type;
+std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type;
+id_attr current_id_attr;
 std::vector<std::string> current_argv;
 std::fstream rules(RULES_OUTPUT, std::ios::out | std::ios::trunc), tac(TAC_OUTPUT, std::ios::out | std::ios::trunc);
 
@@ -101,9 +105,10 @@ T_ID {
 	current_id = std::string("typedef ").append(current_typename = std::string(yytext_ptr));
 } '=' Type
 {
-	current_scope -> symt[current_id] = {current_type, current_scope -> symt.size()};
-	prog_scope.symt[current_typename] = {LookupTypeDef(current_type), current_scope -> symt.size()};
-	current_type = "";
+	current_scope -> symt[current_id] = {current_id_attr.type, current_scope -> symt.size()};
+	prog_scope.symt[current_typename] = {LookupTypeDef(current_id_attr.type), current_scope -> symt.size()};
+	current_id_attr.type = "";
+	current_id_attr.field_list.clear();
 }
 {rules<<"TypeDefinition\n";}
 ;
@@ -163,7 +168,8 @@ T_PROCEDURE T_ID
 }
 '(' FormalParameterList {
 	current_scope -> symt[std::string("procedure ").append(current_id)] = {"void", current_scope -> symt.size()};  //procedure returns type 'void'
-	current_type = "";
+	current_id_attr.type = "";
+	current_id_attr.field_list.clear();
 	argc = 0;
 }')' ';' DeclarationBody {rules<<"ProcedureDeclaration\n"; print_tac("return"); --ind; tac<<"\n";}
 ;
@@ -178,7 +184,8 @@ T_FUNCTION T_ID
 } '(' FormalParameterList ')' ':' ResultType
 {
 	current_scope -> symt[std::string("function ").append(current_id)] = {exp_type, current_scope -> symt.size()};
-	current_type = "";
+	current_id_attr.type = "";
+	current_id_attr.field_list.clear();
 	argc = 0;
 }';' DeclarationBody {rules<<"FunctionDeclaration\n"; print_tac(std::string("funreturn ").append(current_ret).append("\t\t; should be \"mov eax, <result>\" in x86 assembly")); --ind; tac<<"\n";}
 ;
@@ -332,23 +339,23 @@ Type   /* todo: replace literal typename with special (reserved) symbols */
 :
 T_ID {
 	type = std::string(yytext_ptr);
-	if (current_type == ""){
-		current_type = type;
+	if (current_id_attr.type == ""){
+		current_id_attr.type = type;
 	}
 } {rules<<"Type\n";}
 |
 T_ARRAY '[' Constant{current_l = current_const;} T_RANGE Constant{current_u = current_const;} ']' T_OF
 {
-	current_type.append("array[").append(to_string<int>(current_l)).append("..").append(to_string<int>(current_u)).append("]_of_");
+	current_id_attr.type.append("array[").append(to_string<int>(current_l)).append("..").append(to_string<int>(current_u)).append("]_of_");
 } Type {rules<<"Type\n";}
 {
-	current_type.append(LookupTypeDef(type));
+	current_id_attr.type.append(LookupTypeDef(type));
 }
 |
 T_RECORD {
-	current_type.append("record{");
+	current_id_attr.type.append("record{");
 } FieldList T_END {
-	current_type.append("}");
+	current_id_attr.type.append("}");
 } {rules<<"Type\n";}
 ;
 
@@ -365,13 +372,16 @@ T_ID {
 }
 ;
 
-FieldList
+FieldList /* assuming FieldList is only used in record declarations */
 :
 /* empty */ {rules<<"FieldList\n";}
 |
 IdentifierList ':' Type {
+
+std::cout<<"FIELD LIST OF "<<current_id<<std::endl;
+
 	for (int i = 0; i < current_argc; ++i){
-		current_type.append(LookupTypeDef(type)).append(",");
+		current_id_attr.type.append(LookupTypeDef(type)).append(",");
 	}
 	current_argv.clear();
 	current_argc = 0;
@@ -612,12 +622,12 @@ int UpdateVar(void){
 int UpdateType(scope *next_scope){
 	if (next_scope){     /* <-- this is for FormalParameterList only */
 		for (int i = 0; i < current_argc; ++i){
-			current_type.append(LookupTypeDef(type)).append(",");    //assumption: formal parameter overwrites variable declaration with the same name that is outside the current scope
+			current_id_attr.type.append(LookupTypeDef(type)).append(",");    //assumption: formal parameter overwrites variable declaration with the same name that is outside the current scope
 			next_scope -> symt[std::string("var ").append(current_argv[i])] = {LookupTypeDef(type), current_scope -> symt.size()};
 		}
 	}else{
 		for (int i = 0; i < current_argc; ++i){
-			current_type.append(LookupTypeDef(type)).append(",");
+			current_id_attr.type.append(LookupTypeDef(type)).append(",");
 		}
 	}
 	current_argv.clear();
@@ -658,7 +668,7 @@ void print_label(const std::string s){
 void print_tac(const std::string s){
 	tac<<std::string("\t", ind)<<s;
 }
-	
+
 int main(void){
 	int ret = yyparse();
 	//std::fstream sym(SYM_OUTPUT, std::ios::out | std::ios::trunc);
