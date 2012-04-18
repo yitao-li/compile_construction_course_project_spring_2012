@@ -159,10 +159,10 @@ T_PROCEDURE T_ID
 {
 	current_id = std::string(yytext_ptr);
 	next_scope = new scope(current_scope);
+	print_label(current_id);
 }
 '(' FormalParameterList {
 	current_scope -> symt[std::string("procedure ").append(current_id)] = {"void", current_scope -> symt.size()};  //procedure returns type 'void'
-	print_label(current_id);
 	current_type = "";
 	argc = 0;
 }')' ';' DeclarationBody {rules<<"ProcedureDeclaration\n";}
@@ -174,6 +174,7 @@ T_FUNCTION T_ID
 {
 	current_id = std::string(yytext_ptr);
 	next_scope = new scope(current_scope);
+	print_label(current_id);
 } '(' FormalParameterList ')' ':' ResultType
 {
 	current_scope -> symt[std::string("function ").append(current_id)] = {exp_type, current_scope -> symt.size()};
@@ -630,7 +631,7 @@ std::string LookupTypeDef(const std::string type){
 }
 
 void print_label(const std::string s){
-	tac<<std::string('\t', ind)<<s<<":\n";
+	tac<<std::string("\t", ind)<<s<<":\n";
 	++ind;
 }
 
