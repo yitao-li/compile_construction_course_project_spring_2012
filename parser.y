@@ -509,14 +509,25 @@ T_ID
 	}
 	print_tac(prev_id);
 }
-ComponentSelection {rules<<"Variable\n";}
+ComponentSelection {
+	rules<<"Variable\n";
+	print_tac("\n");
+}
 ;
 
 ComponentSelection
 :
 /* empty */ {rules<<"ComponentSelection\n";}
 |
-'.' T_ID ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
+'.'
+{
+	print_tac(".");
+}
+T_ID
+{
+	print_tac(prev_id);  //TODO: MODIFIY EXP_TYPE TO TYPE OF THE COMPONENT
+}
+ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
 |
 '['
 {
