@@ -165,7 +165,7 @@ T_PROCEDURE T_ID
 	current_scope -> symt[std::string("procedure ").append(current_id)] = {"void", current_scope -> symt.size()};  //procedure returns type 'void'
 	current_type = "";
 	argc = 0;
-}')' ';' DeclarationBody {rules<<"ProcedureDeclaration\n";}
+}')' ';' DeclarationBody {rules<<"ProcedureDeclaration\n"; print_tac("return"); --ind; tac<<"\n";}
 ;
 
 FunctionDeclaration
@@ -180,7 +180,7 @@ T_FUNCTION T_ID
 	current_scope -> symt[std::string("function ").append(current_id)] = {exp_type, current_scope -> symt.size()};
 	current_type = "";
 	argc = 0;
-}';' DeclarationBody {rules<<"FunctionDeclaration\n";}
+}';' DeclarationBody {rules<<"FunctionDeclaration\n"; --ind; tac<<"\n";}
 ;
 
 DeclarationBody
@@ -636,7 +636,7 @@ void print_label(const std::string s){
 }
 
 void print_tac(const std::string s){
-	tac<<std::string('\t', ind)<<s<<"\n";
+	tac<<std::string("\t", ind)<<s<<"\n";
 }
 	
 int main(void){
