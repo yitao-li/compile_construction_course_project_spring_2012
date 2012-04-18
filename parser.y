@@ -18,6 +18,7 @@
 #define FW 50
 #define SYM_OUTPUT "symtable.out"
 #define RULES_OUTPUT "rules.out"
+#define TAC_OUTPUT "a.txt"
 
 typedef struct id_attr{
 	std::string type;
@@ -39,10 +40,10 @@ typedef struct scope{
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
 
-int argc = 0, current_argc = 0, s_err = 0, current_sgn, current_const, current_l, current_u;
+int argc = 0, current_argc = 0, s_err = 0, ind = 0, current_sgn, current_const, current_l, current_u;
 std::string current_id, current_type, type, current_typename, exp_type, lhs_type, ret_type;
 std::vector<std::string> current_argv;
-std::fstream rules_out(RULES_OUTPUT, std::ios::out | std::ios::trunc);
+std::fstream rules(RULES_OUTPUT, std::ios::out | std::ios::trunc), tac(TAC_OUTPUT, std::ios::out | std::ios::trunc);
 
 template <class T>
 inline std::string to_string (const T & t){
@@ -53,6 +54,7 @@ inline std::string to_string (const T & t){
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
 std::string LookupTypeDef(const std::string);
+void print_label(const std::string s), print_tac(const std::string s);
 
 %}
 
@@ -70,27 +72,27 @@ T_PROGRAM T_ID
 }
 ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
 {
-	rules_out<<"Program\n";
+	rules<<"Program\n";
 }
 ;
 
 TypeDefinitions
 :
-T_TYPE TypeDefinition ';' _OptTypeDefinitions {rules_out<<"TypeDefinitions\n";}
+T_TYPE TypeDefinition ';' _OptTypeDefinitions {rules<<"TypeDefinitions\n";}
 ;
 
 OptTypeDefinitions
 :
-/* empty */ {rules_out<<"OptTypeDefinitions\n";}
+/* empty */ {rules<<"OptTypeDefinitions\n";}
 |
-TypeDefinitions {rules_out<<"OptTypeDefinitions\n";}
+TypeDefinitions {rules<<"OptTypeDefinitions\n";}
 ;
 
 _OptTypeDefinitions
 :
-/* empty */ {rules_out<<"_OptTypeDefinitions\n";}
+/* empty */ {rules<<"_OptTypeDefinitions\n";}
 |
-TypeDefinition ';' _OptTypeDefinitions {rules_out<<"_OptTypeDefinitions\n";}
+TypeDefinition ';' _OptTypeDefinitions {rules<<"_OptTypeDefinitions\n";}
 ;
 
 TypeDefinition
@@ -103,52 +105,52 @@ T_ID {
 	prog_scope.symt[current_typename] = {LookupTypeDef(current_type), current_scope -> symt.size()};
 	current_type = "";
 }
-{rules_out<<"TypeDefinition\n";}
+{rules<<"TypeDefinition\n";}
 ;
 
 VariableDeclarations
 :
-T_VAR VariableDeclaration ';' _OptVariableDeclarations {rules_out<<"VariableDeclarations\n";}
+T_VAR VariableDeclaration ';' _OptVariableDeclarations {rules<<"VariableDeclarations\n";}
 ;
 
 VariableDeclaration
 :
-IdentifierList ':' Type {UpdateVar();} {rules_out<<"VariableDeclaration\n";}
+IdentifierList ':' Type {UpdateVar();} {rules<<"VariableDeclaration\n";}
 ;
 
 OptVariableDeclarations
 :
-/* empty */ {rules_out<<"OptVariableDeclarations\n";}
+/* empty */ {rules<<"OptVariableDeclarations\n";}
 |
-VariableDeclarations {rules_out<<"OptVariableDeclarations\n";}
+VariableDeclarations {rules<<"OptVariableDeclarations\n";}
 ;
 
 _OptVariableDeclarations
 :
-/* empty */ {rules_out<<"_OptVariableDeclarations\n";}
+/* empty */ {rules<<"_OptVariableDeclarations\n";}
 |
-VariableDeclaration ';' _OptVariableDeclarations {rules_out<<"_OptVariableDeclarations\n";}
+VariableDeclaration ';' _OptVariableDeclarations {rules<<"_OptVariableDeclarations\n";}
 ;
 
 OptSubprogramDeclarations
 :
-/* empty */ {rules_out<<"OptSubprogramDeclarations\n";}
+/* empty */ {rules<<"OptSubprogramDeclarations\n";}
 |
-SubprogramDeclarations {rules_out<<"OptSubprogramDeclarations\n";}
+SubprogramDeclarations {rules<<"OptSubprogramDeclarations\n";}
 ;
 
 SubprogramDeclarations
 :
-/* empty */ {rules_out<<"SubprogramDeclarations\n";}
+/* empty */ {rules<<"SubprogramDeclarations\n";}
 |
-SubprogramDeclaration ';' SubprogramDeclarations {rules_out<<"SubprogramDeclarations\n";}
+SubprogramDeclaration ';' SubprogramDeclarations {rules<<"SubprogramDeclarations\n";}
 ;
 
 SubprogramDeclaration
 :
-ProcedureDeclaration {rules_out<<"SubprogramDeclaration\n";}
+ProcedureDeclaration {rules<<"SubprogramDeclaration\n";}
 |
-FunctionDeclaration {rules_out<<"SubprogramDeclaration\n";}
+FunctionDeclaration {rules<<"SubprogramDeclaration\n";}
 ;
 
 ProcedureDeclaration
@@ -160,9 +162,10 @@ T_PROCEDURE T_ID
 }
 '(' FormalParameterList {
 	current_scope -> symt[std::string("procedure ").append(current_id)] = {"void", current_scope -> symt.size()};  //procedure returns type 'void'
+	print_label(current_id);
 	current_type = "";
 	argc = 0;
-}')' ';' DeclarationBody {rules_out<<"ProcedureDeclaration\n";}
+}')' ';' DeclarationBody {rules<<"ProcedureDeclaration\n";}
 ;
 
 FunctionDeclaration
@@ -176,19 +179,19 @@ T_FUNCTION T_ID
 	current_scope -> symt[std::string("function ").append(current_id)] = {exp_type, current_scope -> symt.size()};
 	current_type = "";
 	argc = 0;
-}';' DeclarationBody {rules_out<<"FunctionDeclaration\n";}
+}';' DeclarationBody {rules<<"FunctionDeclaration\n";}
 ;
 
 DeclarationBody
 :
 Block
 {
-	rules_out<<"DeclarationBody\n";
+	rules<<"DeclarationBody\n";
 }
 |
 T_FORWARD
 {
-	rules_out<<"DeclarationBody\n";
+	rules<<"DeclarationBody\n";
 }
 ;
 
@@ -197,24 +200,24 @@ FormalParameterList
 {
 	argc = 0;
 }
-/* empty */ {rules_out<<"FormalParameterList\n";}
+/* empty */ {rules<<"FormalParameterList\n";}
 |
 {
 	argc = 0;
 }
 IdentifierList ':' Type {
 	UpdateType(next_scope);
-}OptIdentifiers {rules_out<<"FormalParameterList\n";}
+}OptIdentifiers {rules<<"FormalParameterList\n";}
 ;
 
 OptIdentifiers
 :
-/* empty */ {rules_out<<"OptIdentifiers\n";}
+/* empty */ {rules<<"OptIdentifiers\n";}
 |
 ';' IdentifierList ':' Type {
 	UpdateType(next_scope);
 }
-OptIdentifiers {rules_out<<"OptIdentifiers\n";}
+OptIdentifiers {rules<<"OptIdentifiers\n";}
 ;
 
 Block
@@ -225,41 +228,41 @@ Block
 }
 CompoundStatement
 {
-	rules_out<<"Block\n";
+	rules<<"Block\n";
 	current_scope = current_scope -> p;
 }
 |
 VariableDeclarations CompoundStatement
 {
-	rules_out<<"Block\n";
+	rules<<"Block\n";
 	current_scope = current_scope -> p;
 }
 ;
 
 CompoundStatement
 :
-T_BEGIN StatementSequence T_END {rules_out<<"CompoundStatement\n";}
+T_BEGIN StatementSequence T_END {rules<<"CompoundStatement\n";}
 ;
 
 StatementSequence
 :
-Statement Statements {rules_out<<"StatementSequence\n";}
+Statement Statements {rules<<"StatementSequence\n";}
 ;
 
 Statement
 :
-SimpleStatement {rules_out<<"Statement\n";}
+SimpleStatement {rules<<"Statement\n";}
 |
-StructuredStatement {rules_out<<"Statement\n";}
+StructuredStatement {rules<<"Statement\n";}
 ;
 
 SimpleStatement
 :
-/* empty */ {rules_out<<"SimpleStatement\n";}
+/* empty */ {rules<<"SimpleStatement\n";}
 |
-AssignmentStatement {rules_out<<"SimpleStatement\n";}
+AssignmentStatement {rules<<"SimpleStatement\n";}
 |
-ProcedureStatement {rules_out<<"SimpleStatement\n";}
+ProcedureStatement {rules<<"SimpleStatement\n";}
 ;
 
 AssignmentStatement
@@ -272,10 +275,11 @@ T_ASSIGNMENT Expression
 {
 	if (lhs_type != "" && exp_type != "" && lhs_type != exp_type){  //if both lhs and rhs are syntatically valid (hence have types)
 		yyerror(std::string("incompatible types in assignment of ").append(exp_type).append(" to ").append(lhs_type).c_str());
+		++s_err;
 	}
 	lhs_type = "";
 	exp_type = "";
-	rules_out<<"AssignmentStatement\n";
+	rules<<"AssignmentStatement\n";
 }
 ;
 
@@ -287,16 +291,16 @@ T_ID {
 		++s_err;
 	}
 }
- '(' ActualParameterList ')' {rules_out<<"ProcedureStatement\n";}
+ '(' ActualParameterList ')' {rules<<"ProcedureStatement\n";}
 ;
 
 StructuredStatement
 :
-CompoundStatement {rules_out<<"StructuredStatement\n";}
+CompoundStatement {rules<<"StructuredStatement\n";}
 |
-T_IF Expression T_THEN Statement CloseIf {rules_out<<"StructuredStatement\n";}
+T_IF Expression T_THEN Statement CloseIf {rules<<"StructuredStatement\n";}
 |
-T_WHILE Expression T_DO Statement {rules_out<<"StructuredStatement\n";}
+T_WHILE Expression T_DO Statement {rules<<"StructuredStatement\n";}
 |
 T_FOR T_ID
 {
@@ -306,21 +310,21 @@ T_FOR T_ID
 		++s_err;
 	}
 }
-T_ASSIGNMENT Expression T_TO Expression T_DO Statement {rules_out<<"StructuredStatement\n";}
+T_ASSIGNMENT Expression T_TO Expression T_DO Statement {rules<<"StructuredStatement\n";}
 ;
 
 CloseIf
 :
-/* empty */ {rules_out<<"CloseIf\n";}
+/* empty */ {rules<<"CloseIf\n";}
 |
-T_ELSE Statement {rules_out<<"CloseIf\n";}
+T_ELSE Statement {rules<<"CloseIf\n";}
 ;
 
 Statements
 :
-/* empty */ {rules_out<<"Statements\n";}
+/* empty */ {rules<<"Statements\n";}
 |
-';' Statement Statements {rules_out<<"Statements\n";}
+';' Statement Statements {rules<<"Statements\n";}
 ;
 
 Type   /* todo: replace literal typename with special (reserved) symbols */
@@ -330,12 +334,12 @@ T_ID {
 	if (current_type == ""){
 		current_type = type;
 	}
-} {rules_out<<"Type\n";}
+} {rules<<"Type\n";}
 |
 T_ARRAY '[' Constant{current_l = current_const;} T_RANGE Constant{current_u = current_const;} ']' T_OF
 {
 	current_type.append("array[").append(to_string<int>(current_l)).append("..").append(to_string<int>(current_u)).append("]_of_");
-} Type {rules_out<<"Type\n";}
+} Type {rules<<"Type\n";}
 {
 	current_type.append(LookupTypeDef(type));
 }
@@ -344,7 +348,7 @@ T_RECORD {
 	current_type.append("record{");
 } FieldList T_END {
 	current_type.append("}");
-} {rules_out<<"Type\n";}
+} {rules<<"Type\n";}
 ;
 
 ResultType
@@ -356,13 +360,13 @@ T_ID {
 		yyerror(std::string("invalid return type: type '").append(type_name).append("' is not declared").c_str());
 		++s_err;
 	}
-	rules_out<<"ResultType\n";
+	rules<<"ResultType\n";
 }
 ;
 
 FieldList
 :
-/* empty */ {rules_out<<"FieldList\n";}
+/* empty */ {rules<<"FieldList\n";}
 |
 IdentifierList ':' Type {
 	for (int i = 0; i < current_argc; ++i){
@@ -371,7 +375,7 @@ IdentifierList ':' Type {
 	current_argv.clear();
 	current_argc = 0;
 }
-OptIdentifiers {rules_out<<"FieldList\n";}
+OptIdentifiers {rules<<"FieldList\n";}
 ;
 
 Constant
@@ -379,13 +383,13 @@ Constant
 T_INT
 {
 	current_const = atoi(yytext_ptr);
-	rules_out<<"Constant\n";
+	rules<<"Constant\n";
 }
 |
 Sign T_INT
 {
 	current_const = current_sgn * atoi(yytext_ptr);
-	rules_out<<"Constant\n";
+	rules<<"Constant\n";
 }
 ;
 
@@ -393,58 +397,58 @@ Expression
 :
 SimpleExpression
 {
-	rules_out<<"Expression\n";
+	rules<<"Expression\n";
 }
 |
 SimpleExpression RelationalOp SimpleExpression
 {
 	exp_type = "boolean";
-	rules_out<<"Expression\n";
+	rules<<"Expression\n";
 }
 ;
 
 RelationalOp
 :
-T_RELOP {rules_out<<"RelationalOp\n";}
+T_RELOP {rules<<"RelationalOp\n";}
 |
-'=' {rules_out<<"RelationalOp\n";}
+'=' {rules<<"RelationalOp\n";}
 ;
 
 SimpleExpression
 :
-Term Summand {rules_out<<"SimpleExpression\n";}
+Term Summand {rules<<"SimpleExpression\n";}
 |
-Sign Term Summand {rules_out<<"SimpleExpression\n";}
+Sign Term Summand {rules<<"SimpleExpression\n";}
 ;
 
 AddOp
 :
-T_ADDOP {rules_out<<"AddOp\n";}
+T_ADDOP {rules<<"AddOp\n";}
 |
-T_OR {rules_out<<"AddOp\n";}
+T_OR {rules<<"AddOp\n";}
 ;
 
 Term
 :
-Factor Multiplicand {rules_out<<"Term\n";}
+Factor Multiplicand {rules<<"Term\n";}
 ;
 
 Summand
 :
-/* empty */ {rules_out<<"Summand\n";}
+/* empty */ {rules<<"Summand\n";}
 |
-AddOp Term Summand {rules_out<<"Summand\n";}
+AddOp Term Summand {rules<<"Summand\n";}
 ;
 
 MulOp
 :
-T_MULOP {rules_out<<"MulOp\n";}
+T_MULOP {rules<<"MulOp\n";}
 |
-T_DIV {rules_out<<"MulOp\n";}
+T_DIV {rules<<"MulOp\n";}
 |
-T_MOD {rules_out<<"MulOp\n";}
+T_MOD {rules<<"MulOp\n";}
 |
-T_AND {rules_out<<"MulOp\n";}
+T_AND {rules<<"MulOp\n";}
 ;
 
 Factor
@@ -452,33 +456,33 @@ Factor
 T_INT
 {
 	exp_type = "integer";
-	rules_out<<"Factor\n";
+	rules<<"Factor\n";
 }
 |
 T_STR
 {
 	exp_type = "string";
-	rules_out<<"Factor\n";
+	rules<<"Factor\n";
 }
 |
-Variable {rules_out<<"Factor\n";}
+Variable {rules<<"Factor\n";}
 |
-FunctionReference {rules_out<<"Factor\n";}
+FunctionReference {rules<<"Factor\n";}
 |
 T_NOT Factor
 {
 	//exp_type = "boolean";  /* not sure if this is necessary */
-	rules_out<<"Factor\n";
+	rules<<"Factor\n";
 }
 |
-'(' Expression ')' {rules_out<<"Factor\n";}
+'(' Expression ')' {rules<<"Factor\n";}
 ;
 
 Multiplicand
 :
-/* empty */ {rules_out<<"Multiplicand\n";}
+/* empty */ {rules<<"Multiplicand\n";}
 |
-MulOp Factor Multiplicand {rules_out<<"Multiplicand\n";}
+MulOp Factor Multiplicand {rules<<"Multiplicand\n";}
 ;
 
 FunctionReference
@@ -491,43 +495,42 @@ T_ID
 	}
 	ret_type = exp_type;
 }
-'(' ActualParameterList ')' {exp_type = ret_type; rules_out<<"FunctionReference\n";}
+'(' ActualParameterList ')' {exp_type = ret_type; rules<<"FunctionReference\n";}
 ;
 
 Variable
 :
 T_ID
-{
-	if (!LookupId(current_scope, std::string("var ").append(prev_id), exp_type)){  // <-- must be a variable
+{       /* note: the 'variable' in this context could also be a function's return value */
+	if (!LookupId(current_scope, std::string("var ").append(prev_id), exp_type) && !LookupId(current_scope, std::string("function ").append(prev_id), exp_type)){  // <-- must be a variable
 		yyerror(std::string("variable '").append(prev_id).append("' is not declared").c_str());
-		std::cout<<"(this might not count as a semantic error)"<<std::endl;
 		++s_err;
 	}
 }
-ComponentSelection {rules_out<<"Variable\n";}
+ComponentSelection {rules<<"Variable\n";}
 ;
 
 ComponentSelection
 :
-/* empty */ {rules_out<<"ComponentSelection\n";}
+/* empty */ {rules<<"ComponentSelection\n";}
 |
-'.' T_ID ComponentSelection {rules_out<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
+'.' T_ID ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
 |
-'[' Expression ']' ComponentSelection {rules_out<<"ComponentSelection\n";}
+'[' Expression ']' ComponentSelection {rules<<"ComponentSelection\n";}
 ;
 
 ActualParameterList
 :
-/* empty */ {rules_out<<"ActualParameterList\n";}
+/* empty */ {rules<<"ActualParameterList\n";}
 |
-Expression OptExpressions {rules_out<<"ActualParameterList\n";}
+Expression OptExpressions {rules<<"ActualParameterList\n";}
 ;
 
 OptExpressions
 :
-/* empty */ {rules_out<<"OptExpressions\n";}
+/* empty */ {rules<<"OptExpressions\n";}
 |
-',' Expression OptExpressions {rules_out<<"OptExpressions\n";}
+',' Expression OptExpressions {rules<<"OptExpressions\n";}
 ;
 
 IdentifierList
@@ -535,17 +538,17 @@ IdentifierList
 T_ID {
 	current_argv.push_back(std::string(yytext_ptr));
 	++current_argc;
-} Identifiers {rules_out<<"IdentifierList\n";}
+} Identifiers {rules<<"IdentifierList\n";}
 ;
 
 Identifiers
 :
-/* empty */ {rules_out<<"Identifiers\n";}
+/* empty */ {rules<<"Identifiers\n";}
 |
 ',' T_ID {
 	current_argv.push_back(std::string(yytext_ptr));
 	++current_argc;
-} Identifiers {rules_out<<"Identifiers\n";}
+} Identifiers {rules<<"Identifiers\n";}
 ;
 
 Sign
@@ -553,13 +556,13 @@ Sign
 '+'
 {
 	current_sgn = 1;
-	rules_out<<"Sign\n";
+	rules<<"Sign\n";
 }
 |
 '-'
 {
 	current_sgn = -1;
-	rules_out<<"Sign\n";
+	rules<<"Sign\n";
 }
 ;
 
@@ -625,10 +628,19 @@ std::string LookupTypeDef(const std::string type){
 	}
 	return eq_type;   //type is not pre-defined
 }
+
+void print_label(const std::string s){
+	tac<<std::string('\t', ind)<<s<<":\n";
+	++ind;
+}
+
+void print_tac(const std::string s){
+	tac<<std::string('\t', ind)<<s<<"\n";
+}
 	
 int main(void){
 	int ret = yyparse();
-	std::fstream sym_out(SYM_OUTPUT, std::ios::out | std::ios::trunc);
+	//std::fstream sym(SYM_OUTPUT, std::ios::out | std::ios::trunc);
 	if (ret == 1){
 		std::cerr<<"\nsyntax error found\n";
 	}else if (ret == 2){
@@ -642,11 +654,14 @@ int main(void){
 		std::cout<<"\nno semantic error found\n";
 	}
 	std::cout<<"\n";
-	sym_out<<std::setw(FW)<<std::left<<"Symbol"<<std::setw(FW)<<std::left<<"Type"<<std::setw(FW)<<"Address"<<"\n\n";
-	for (std::map<std::string, id_attr>::iterator itr = current_scope -> symt.begin(); itr != current_scope -> symt.end(); ++itr){
-		sym_out<<std::setw(FW)<<std::left<<itr->first<<std::setw(FW)<<std::left<<itr->second.type<<std::setw(FW)<<std::left<<itr->second.addr<<"\n";
+	/*
+	sym<<std::setw(FW)<<std::left<<"Symbol"<<std::setw(FW)<<std::left<<"Type"<<std::setw(FW)<<"Address"<<"\n\n";
+	for (std::map<std::string, id_attr>::iterator itr = current_scope -> sym.begin(); itr != current_scope -> sym.end(); ++itr){
+		sym<<std::setw(FW)<<std::left<<itr->first<<std::setw(FW)<<std::left<<itr->second.type<<std::setw(FW)<<std::left<<itr->second.addr<<"\n";
 	}
-	sym_out.close();
-	rules_out.close();
+	sym.close();
+	*/
+	rules.close();
+	tac.close();
 	return 0;
 }
