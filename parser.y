@@ -41,7 +41,7 @@ typedef struct scope{
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
 
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, current_sgn, current_const, current_l, current_u;
-std::string current_id, current_type, type, current_typename, exp_type, lhs_type, ret_type;
+std::string current_id, current_type, current_ret, type, current_typename, exp_type, lhs_type, ret_type;
 std::vector<std::string> current_argv;
 std::fstream rules(RULES_OUTPUT, std::ios::out | std::ios::trunc), tac(TAC_OUTPUT, std::ios::out | std::ios::trunc);
 
@@ -159,7 +159,7 @@ T_PROCEDURE T_ID
 {
 	current_id = std::string(yytext_ptr);
 	next_scope = new scope(current_scope);
-	print_label(current_id);
+	print_label(std::string("procedure_").append(current_id));
 }
 '(' FormalParameterList {
 	current_scope -> symt[std::string("procedure ").append(current_id)] = {"void", current_scope -> symt.size()};  //procedure returns type 'void'
@@ -172,15 +172,15 @@ FunctionDeclaration
 :
 T_FUNCTION T_ID
 {
-	current_id = std::string(yytext_ptr);
+	current_ret = current_id = std::string(yytext_ptr);
 	next_scope = new scope(current_scope);
-	print_label(current_id);
+	print_label(std::string("function_").append(current_id));
 } '(' FormalParameterList ')' ':' ResultType
 {
 	current_scope -> symt[std::string("function ").append(current_id)] = {exp_type, current_scope -> symt.size()};
 	current_type = "";
 	argc = 0;
-}';' DeclarationBody {rules<<"FunctionDeclaration\n"; --ind; tac<<"\n";}
+}';' DeclarationBody {rules<<"FunctionDeclaration\n"; print_tac(std::string("funreturn ").append(current_ret).append("\t\t; should be \"mov eax, <result>\" in x86 assembly")); --ind; tac<<"\n";}
 ;
 
 DeclarationBody
