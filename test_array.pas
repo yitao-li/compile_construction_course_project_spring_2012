@@ -7,13 +7,13 @@ program errorfree;
 type
 	s = string;
 	in = integer;
+	A = array[1..10] of integer;
 var
 	z : s;
 	m : in;
-	z : in;  {error: multiple declaration}
-
+	a : A;
 begin
-	z := 5;
+	z := "";
 	m := 7;
-      p := m; {error: undeclared variable}	
+	a[0] := 1;
 end.

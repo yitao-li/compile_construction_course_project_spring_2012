@@ -507,6 +507,7 @@ T_ID
 		yyerror(std::string("variable '").append(prev_id).append("' is not declared").c_str());
 		++s_err;
 	}
+	print_tac(prev_id);
 }
 ComponentSelection {rules<<"Variable\n";}
 ;
@@ -517,7 +518,15 @@ ComponentSelection
 |
 '.' T_ID ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
 |
-'[' Expression ']' ComponentSelection {rules<<"ComponentSelection\n";}
+'['
+{
+	print_tac("[");
+}
+Expression ']'
+{
+	print_tac("]");
+}
+ComponentSelection {rules<<"ComponentSelection\n";}
 ;
 
 ActualParameterList
@@ -636,7 +645,7 @@ void print_label(const std::string s){
 }
 
 void print_tac(const std::string s){
-	tac<<std::string("\t", ind)<<s<<"\n";
+	tac<<std::string("\t", ind)<<s;
 }
 	
 int main(void){
