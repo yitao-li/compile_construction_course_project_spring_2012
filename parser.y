@@ -45,9 +45,9 @@ typedef struct scope{
 } scope;
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
-
-int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, lc, rc, current_sgn, current_const, current_l, current_u;
-std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type;
+bool temp_var;  //whether temp variables are used in tac
+int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, current_const, current_l, current_u;
+std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt;  //tac output for current variable
 id_attr current_id_attr;
 std::vector<std::string> current_argv;
 std::fstream rules(RULES_OUTPUT, std::ios::out | std::ios::trunc), tac(TAC_OUTPUT, std::ios::out | std::ios::trunc);
@@ -282,7 +282,13 @@ AssignmentStatement
 Variable
 {
 	lhs_type = exp_type;
-	lc = tmpc++;
+	//lc = tmpc++;
+	if (!temp_var){
+		print_tac(vt.append(" := "));
+	}else{
+		print_tac(vt);
+		print_tac(Temp_Eq());
+	}
 }
 T_ASSIGNMENT Expression
 {
@@ -295,8 +301,8 @@ T_ASSIGNMENT Expression
 	}else if (exp_type == ""){
 		yyerror("unable to determine the type of the right-hand side due to previous error(s)");
 	}
-	rc = tmpc++;
-	//print_tac()
+//	print_tac(Temp(lc).append(" := ").append(Temp()).append("\n"));
+	print_tac("\n");
 	lhs_type = "";
 	exp_type = "";
 	rules<<"AssignmentStatement\n";
@@ -556,15 +562,17 @@ Variable
 :
 T_ID
 {       /* note: the 'variable' in this context could also be a function's return value */
+	temp_var = false;
 	if (!LookupId(current_scope, std::string("var ").append(prev_id), exp_type) && !LookupId(current_scope, std::string("function ").append(prev_id), exp_type)){  // <-- must be a variable
 		yyerror(std::string("variable '").append(prev_id).append("' is not declared").c_str());
 		++s_err;
 	}
-	print_tac(Temp_Eq().append(prev_id).append("\n"));
+	vt = prev_id;
+	//print_tac(Temp_Eq().append(prev_id).append("\n"));
 }
 ComponentSelection {
 	rules<<"Variable\n";
-	print_tac("\n");
+	//print_tac("\n");
 }
 ;
 
@@ -574,7 +582,13 @@ ComponentSelection
 |
 '.'
 {
-	print_tac(Temp_Eq().append(Temp()).append("."));
+	if (!temp_var){
+		temp_var = true;
+		vt = Temp_Eq(tmpc + 1).append(vt.append("."));
+	}else{
+		vt.append(Temp_Eq(tmpc + 1)).append(Temp()).append(".");
+	}
+//	print_tac(Temp_Eq().append(Temp()).append("."));
 	//current_id = prev_id;
 }
 T_ID
@@ -594,7 +608,9 @@ T_ID
 			exp_type = ft -> second;
 		}
 	}
-	print_tac(prev_id.append("\n"));
+	vt.append(prev_id).append("\n");
+	++tmpc;
+	//print_tac(prev_id.append("\n"));
 }
 ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
 |
