@@ -19,8 +19,6 @@
 #define SYM_OUTPUT "symtable.out"
 #define RULES_OUTPUT "rules.out"
 #define TAC_OUTPUT "a.txt"
-#define TEMP "temp"
-#define TEMP_EQ "temp := "
 
 typedef struct id_attr{
 	std::string type;
@@ -35,17 +33,20 @@ typedef struct scope{
 	scope *p;
 	scope(void):p(NULL){
 		symt["integer"] = id_attr("integer", 0);    //predefined types
-		symt["string"] = id_attr("string", 1);
-		symt["boolean"] = id_attr("boolean", 2);
-		symt["true"] = id_attr("true", 3);
-		symt["false"] = id_attr("false", 4);
+		//symt["typedef integer"] = id_attr("integer", 1);
+		symt["string"] = id_attr("string", 2);
+		symt["typedef string"] = id_attr("string", 3);
+		symt["boolean"] = id_attr("boolean", 4);
+		symt["typedef boolean"] = id_attr("boolean", 5);
+		symt["true"] = id_attr("true", 6);
+		symt["false"] = id_attr("false", 7);
 	}
 	scope(scope *_p):p(_p){}
 } scope;
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
 
-int argc = 0, current_argc = 0, s_err = 0, ind = 0, current_sgn, current_const, current_l, current_u;
+int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, lc, rc, current_sgn, current_const, current_l, current_u;
 std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type;
 id_attr current_id_attr;
 std::vector<std::string> current_argv;
@@ -59,7 +60,7 @@ inline std::string to_string (const T & t){
 }
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
-std::string LookupTypeDef(const std::string);
+std::string LookupTypeDef(const std::string), Temp(void), Temp(int), Temp_Eq(void), Temp_Eq(int);
 void print_label(const std::string s), print_tac(const std::string s);
 
 %}
@@ -281,6 +282,7 @@ AssignmentStatement
 Variable
 {
 	lhs_type = exp_type;
+	lc = tmpc++;
 }
 T_ASSIGNMENT Expression
 {
@@ -293,6 +295,8 @@ T_ASSIGNMENT Expression
 	}else if (exp_type == ""){
 		yyerror("unable to determine the type of the right-hand side due to previous error(s)");
 	}
+	rc = tmpc++;
+	//print_tac()
 	lhs_type = "";
 	exp_type = "";
 	rules<<"AssignmentStatement\n";
@@ -556,7 +560,7 @@ T_ID
 		yyerror(std::string("variable '").append(prev_id).append("' is not declared").c_str());
 		++s_err;
 	}
-	print_tac(std::string(TEMP_EQ).append(prev_id).append("\n"));
+	print_tac(Temp_Eq().append(prev_id).append("\n"));
 }
 ComponentSelection {
 	rules<<"Variable\n";
@@ -570,7 +574,7 @@ ComponentSelection
 |
 '.'
 {
-	print_tac(std::string(TEMP_EQ).append(TEMP).append("."));
+	print_tac(Temp_Eq().append(Temp()).append("."));
 	//current_id = prev_id;
 }
 T_ID
@@ -580,9 +584,9 @@ T_ID
 	if (exp_type != ""){   //if no error occurred in previous type lookup
 		if ( (t = current_scope -> symt.find(std::string("typedef ").append(exp_type))) == current_scope -> symt.end() ){
 			yyerror(std::string("type '").append(exp_type).append("' is not defined").c_str());
+			exp_type = "";
 			++s_err;
-		}
-		if ( (ft = t -> second.field_list.find(prev_id)) == t -> second.field_list.end() ){
+		}else if ( (ft = t -> second.field_list.find(prev_id)) == t -> second.field_list.end() ){
 			yyerror(std::string("field '").append(prev_id).append("' of type '").append(exp_type).append("' is not defined").c_str());
 			exp_type = "";
 			++s_err;
@@ -701,6 +705,22 @@ std::string LookupTypeDef(const std::string type){
 		eq_type = it -> second.type;
 	}
 	return eq_type;   //type is not pre-defined
+}
+
+std::string Temp(void){
+	return std::string("temp").append(to_string<int>(tmpc));
+}
+
+std::string Temp(int c){
+	return std::string("temp").append(to_string<int>(c));
+}
+
+std::string Temp_Eq(void){
+	return std::string("temp").append(to_string<int>(tmpc)).append(" := ");
+}
+
+std::string Temp_Eq(int c){
+	return std::string("temp").append(to_string<int>(c)).append(" := ");
 }
 
 void print_label(const std::string s){

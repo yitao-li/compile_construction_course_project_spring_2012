@@ -26,5 +26,5 @@ begin
 	z := "";
 	m := 7;
 	r.b.s := 100;   {no field with name 's'}
-	r.b.b := 100;
+	r.b.a := 100;
 end.
