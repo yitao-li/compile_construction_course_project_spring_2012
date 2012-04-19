@@ -31,7 +31,7 @@ typedef struct id_attr{
 } id_attr;
 
 typedef struct scope{
-	std::map< std::string, id_attr > symt;
+	std::map<std::string, id_attr> symt;
 	scope *p;
 	scope(void):p(NULL){
 		symt["integer"] = id_attr("integer", 0);    //predefined types
@@ -288,6 +288,10 @@ T_ASSIGNMENT Expression
 	if (lhs_type != "" && exp_type != "" && (l_type = LookupTypeDef(lhs_type)) != (r_type = LookupTypeDef(exp_type))){  //if both lhs and rhs are syntatically valid (hence have types)
 		yyerror(std::string("incompatible types in assignment of ").append(r_type).append(" to ").append(l_type).c_str());
 		++s_err;
+	}else if (lhs_type == ""){
+		yyerror("unable to determine the type of the left-hand side due to previous error(s)");
+	}else if (exp_type == ""){
+		yyerror("unable to determine the type of the right-hand side due to previous error(s)");
 	}
 	lhs_type = "";
 	exp_type = "";
@@ -383,10 +387,9 @@ FieldList /* assuming FieldList is only used in record declarations */
 /* empty */ {rules<<"FieldList\n";}
 |
 IdentifierList ':' Type {
-	std::string t = LookupTypeDef(type);
 	for (int i = 0; i < current_argc; ++i){
-		current_id_attr.field_list[current_argv[i]] = t;  //entry for type of field in symbol table
-		current_id_attr.type.append(t).append(",");
+		current_id_attr.field_list[current_argv[i]] = type;  //entry for type of field in symbol table, note: use typename here
+		current_id_attr.type.append(LookupTypeDef(type)).append(",");
 	}
 	current_argv.clear();
 	current_argc = 0;
@@ -568,17 +571,26 @@ ComponentSelection
 '.'
 {
 	print_tac(std::string(TEMP_EQ).append(TEMP).append("."));
-	current_id = prev_id;
+	//current_id = prev_id;
 }
 T_ID
 {
-	std::map< std::string, id_attr >::iterator t;
-	if ( (t = current_scope -> symt.find(std::string("typedef ").append(exp_type))) == current_scope -> symt.end() ){
-		yyerror(std::string("type '").append(exp_type).append("' is not defined").c_str());
-		++s_err;
+	std::map<std::string, id_attr>::iterator t;
+	std::map<std::string, std::string>::iterator ft;
+	if (exp_type != ""){   //if no error occurred in previous type lookup
+		if ( (t = current_scope -> symt.find(std::string("typedef ").append(exp_type))) == current_scope -> symt.end() ){
+			yyerror(std::string("type '").append(exp_type).append("' is not defined").c_str());
+			++s_err;
+		}
+		if ( (ft = t -> second.field_list.find(prev_id)) == t -> second.field_list.end() ){
+			yyerror(std::string("field '").append(prev_id).append("' of type '").append(exp_type).append("' is not defined").c_str());
+			exp_type = "";
+			++s_err;
+		}else{
+			exp_type = ft -> second;
+		}
 	}
-	std::cout<<"field_list with size "<< (t -> second.field_list.size()) <<std::endl;
-	print_tac(prev_id.append("\n"));  //TODO: MODIFIY EXP_TYPE TO TYPE OF THE COMPONENT
+	print_tac(prev_id.append("\n"));
 }
 ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
 |
@@ -668,7 +680,7 @@ int UpdateType(scope *next_scope){
 }
 
 int LookupId(scope *current_scope, const std::string name, std::string & type){
-	std::map< std::string, id_attr >::iterator it;
+	std::map<std::string, id_attr>::iterator it;
 	while (current_scope){
 		if ( (it = current_scope -> symt.find(name)) != current_scope -> symt.end()){
 			type = it -> second.type;
@@ -681,7 +693,7 @@ int LookupId(scope *current_scope, const std::string name, std::string & type){
 
 std::string LookupTypeDef(const std::string type){
 	std::string eq_type = type;
-	std::map< std::string, id_attr >::iterator it;
+	std::map<std::string, id_attr>::iterator it;
 	while ( (it = prog_scope.symt.find(eq_type)) != prog_scope.symt.end() ){
 		if (it -> second.type == eq_type){
 			return eq_type;
