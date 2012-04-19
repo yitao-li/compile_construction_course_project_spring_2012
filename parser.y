@@ -377,11 +377,10 @@ FieldList /* assuming FieldList is only used in record declarations */
 /* empty */ {rules<<"FieldList\n";}
 |
 IdentifierList ':' Type {
-
-std::cout<<"FIELD LIST OF "<<current_id<<std::endl;
-
+	std::string t = LookupTypeDef(type);
 	for (int i = 0; i < current_argc; ++i){
-		current_id_attr.type.append(LookupTypeDef(type)).append(",");
+		current_id_attr.field_list[current_argv[i]] = t;  //entry for type of field in symbol table
+		current_id_attr.type.append(t).append(",");
 	}
 	current_argv.clear();
 	current_argc = 0;

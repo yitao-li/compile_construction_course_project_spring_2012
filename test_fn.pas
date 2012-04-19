@@ -17,7 +17,7 @@ end;
 function foo2(a : integer; c : string) : y; 
 begin
    while a do
-       a := bar()
+       a := bar() {function 'bar' is not defined}
 end;
 
 function foo3(a, b : integer) : s; forward;
