@@ -108,8 +108,8 @@ T_ID {
 } '=' Type
 {
 	current_id_attr.addr = current_scope -> symt.size();
-	current_scope -> symt[current_id] = current_id_attr;
-	prog_scope.symt[current_typename] = id_attr(LookupTypeDef(current_id_attr.type), current_scope -> symt.size());
+	current_scope -> symt[current_id] = current_id_attr;    //this stores the FieldList of the type
+	prog_scope.symt[current_typename] = id_attr(LookupTypeDef(current_id_attr.type), current_scope -> symt.size());    //this stores type equivalence
 	current_id_attr.type = "";
 	current_id_attr.field_list.clear();
 }
@@ -284,8 +284,9 @@ Variable
 }
 T_ASSIGNMENT Expression
 {
-	if (lhs_type != "" && exp_type != "" && lhs_type != exp_type){  //if both lhs and rhs are syntatically valid (hence have types)
-		yyerror(std::string("incompatible types in assignment of ").append(exp_type).append(" to ").append(lhs_type).c_str());
+	std::string l_type, r_type;
+	if (lhs_type != "" && exp_type != "" && (l_type = LookupTypeDef(lhs_type)) != (r_type = LookupTypeDef(exp_type))){  //if both lhs and rhs are syntatically valid (hence have types)
+		yyerror(std::string("incompatible types in assignment of ").append(r_type).append(" to ").append(l_type).c_str());
 		++s_err;
 	}
 	lhs_type = "";
@@ -403,7 +404,6 @@ T_INT
 |
 Sign T_INT
 {
-std::cout<<"SIGNED"<<std::endl;  //HEREHERE
 	current_const = current_sgn * atoi(yytext_ptr);
 	rules<<"Constant\n";
 }
@@ -425,16 +425,30 @@ SimpleExpression RelationalOp SimpleExpression
 
 RelationalOp
 :
-T_RELOP {rules<<"RelationalOp\n";}
+T_RELOP
+{
+//	std::cout<<std::string(yytext_ptr)<<std::endl;
+	rules<<"RelationalOp\n";
+}
 |
-'=' {rules<<"RelationalOp\n";}
+'='
+{
+	print_tac("=");
+	rules<<"RelationalOp\n";
+}
 ;
 
 SimpleExpression
 :
 Term Summand {rules<<"SimpleExpression\n";}
 |
-Sign Term Summand {rules<<"SimpleExpression\n";}
+Sign
+{
+	if (current_sgn == -1){
+		print_tac("-");
+	}
+}
+Term Summand {rules<<"SimpleExpression\n";}
 ;
 
 Sign
@@ -442,14 +456,14 @@ Sign
 '+'
 {
 	current_sgn = 1;
-	print_tac(" + ");
+//	print_tac(" + ");
 	rules<<"Sign\n";
 }
 |
 '-'
 {
 	current_sgn = -1;
-	print_tac(" - ");
+//	print_tac(" - ");
 	rules<<"Sign\n";
 }
 ;
@@ -504,7 +518,7 @@ FunctionReference {rules<<"Factor\n";}
 |
 T_NOT Factor
 {
-	//exp_type = "boolean";  /* not sure if this is necessary */
+	//exp_type = "boolean";  /* this should be unnecessary */
 	rules<<"Factor\n";
 }
 |
@@ -540,6 +554,21 @@ T_ID
 		++s_err;
 	}
 	print_tac(std::string(TEMP_EQ).append(prev_id).append("\n"));
+
+
+
+
+
+
+
+
+//HEREHERE
+//	std::cout<<"exp_type == "<<exp_type<<std::endl;
+
+
+
+
+
 }
 ComponentSelection {
 	rules<<"Variable\n";
@@ -558,8 +587,7 @@ ComponentSelection
 }
 T_ID
 {
-	//std::cout<<current_id<<" has type "<<exp_type<<std::endl;
-	//if 
+	//if (!LookupId(current_scope, std::string("typedef ").append(exp_type
 	print_tac(prev_id.append("\n"));  //TODO: MODIFIY EXP_TYPE TO TYPE OF THE COMPONENT
 }
 ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
@@ -622,7 +650,9 @@ int UpdateVar(void){
 			yyerror(std::string("redeclaration of variable '").append(*itr).append("'").c_str());
 			++s_err;
 		}else{
-			current_scope -> symt[s] = id_attr(LookupTypeDef(type), current_scope -> symt.size());
+			//current_scope -> symt[s] = id_attr(LookupTypeDef(type), current_scope -> symt.size());
+			/* note: at this level use typename instead */
+			current_scope -> symt[s] = id_attr(type, current_scope -> symt.size());
 		}
 	}
 	current_argv.clear();

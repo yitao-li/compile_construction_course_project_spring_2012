@@ -13,8 +13,12 @@ var
 	m : in;
 	a : A;
 begin
+	1 < 1;
 	z := "";
 	m := -7 + 66;
-	m := 6 and 666;
+{	m := 6 and 666;
+	m := 6 or 666;
+	m := -6 or 666;
+	{m := 6 and -666; note: according to the grammar this is not allowed}
 	a[0] := -1;
 end.

@@ -8,13 +8,22 @@ type
 	s = string;
 	in = integer;
 	A = array[1..10] of integer;
+	RR = record
+		a,b : integer;
+		c   : string
+	end;
+	R = record
+		a,b : RR;
+		c   : string
+	end;
+	
+                                        
 var
 	z : s;
 	m : in;
-	a : A;
+	r : R;
 begin
 	z := "";
 	m := 7;
-	a[0] := 1;
-	a.b.cccc.de := a;
+	r.b.b := 100;
 end.
