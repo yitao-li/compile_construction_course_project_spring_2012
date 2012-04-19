@@ -19,6 +19,8 @@
 #define SYM_OUTPUT "symtable.out"
 #define RULES_OUTPUT "rules.out"
 #define TAC_OUTPUT "a.txt"
+#define TEMP "temp"
+#define TEMP_EQ "temp := "
 
 typedef struct id_attr{
 	std::string type;
@@ -72,7 +74,7 @@ Program
 :
 T_PROGRAM T_ID
 {
-	current_scope -> symt[std::string("program ").append(std::string(yytext_ptr))] = {"program", current_scope -> symt.size()};
+	current_scope -> symt[std::string("program ").append(std::string(yytext_ptr))] = id_attr("program", current_scope -> symt.size());
 }
 ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
 {
@@ -105,8 +107,9 @@ T_ID {
 	current_id = std::string("typedef ").append(current_typename = std::string(yytext_ptr));
 } '=' Type
 {
-	current_scope -> symt[current_id] = {current_id_attr.type, current_scope -> symt.size()};
-	prog_scope.symt[current_typename] = {LookupTypeDef(current_id_attr.type), current_scope -> symt.size()};
+	current_id_attr.addr = current_scope -> symt.size();
+	current_scope -> symt[current_id] = current_id_attr;
+	prog_scope.symt[current_typename] = id_attr(LookupTypeDef(current_id_attr.type), current_scope -> symt.size());
 	current_id_attr.type = "";
 	current_id_attr.field_list.clear();
 }
@@ -349,7 +352,9 @@ T_ARRAY '[' Constant{current_l = current_const;} T_RANGE Constant{current_u = cu
 	current_id_attr.type.append("array[").append(to_string<int>(current_l)).append("..").append(to_string<int>(current_u)).append("]_of_");
 } Type {rules<<"Type\n";}
 {
-	current_id_attr.type.append(LookupTypeDef(type));
+	std::string t = LookupTypeDef(type);
+	current_id_attr.type.append(t);
+	current_id_attr.field_list["."] = t;
 }
 |
 T_RECORD {
@@ -516,7 +521,7 @@ T_ID
 		yyerror(std::string("variable '").append(prev_id).append("' is not declared").c_str());
 		++s_err;
 	}
-	print_tac(prev_id);
+	print_tac(std::string(TEMP_EQ).append(prev_id).append("\n"));
 }
 ComponentSelection {
 	rules<<"Variable\n";
@@ -530,11 +535,14 @@ ComponentSelection
 |
 '.'
 {
-	print_tac(".");
+	print_tac(std::string(TEMP_EQ).append(TEMP).append("."));
+	current_id = prev_id;
 }
 T_ID
 {
-	print_tac(prev_id);  //TODO: MODIFIY EXP_TYPE TO TYPE OF THE COMPONENT
+	//std::cout<<current_id<<" has type "<<exp_type<<std::endl;
+	//if 
+	print_tac(prev_id.append("\n"));  //TODO: MODIFIY EXP_TYPE TO TYPE OF THE COMPONENT
 }
 ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
 |
@@ -586,12 +594,14 @@ Sign
 '+'
 {
 	current_sgn = 1;
+	print_tac(" + ");
 	rules<<"Sign\n";
 }
 |
 '-'
 {
 	current_sgn = -1;
+	print_tac(" - ");
 	rules<<"Sign\n";
 }
 ;
