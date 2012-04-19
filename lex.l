@@ -161,9 +161,6 @@ while	{return T_WHILE;}
 {MULOP}	{return T_MULOP;}
 
 
-{ADDOP}	{return T_ADDOP;}
-
-
 {OTHER} {return *yytext_ptr;}
 
 

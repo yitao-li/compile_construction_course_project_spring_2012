@@ -1,6 +1,6 @@
 /* BISON TOKEN NAMES */
 
-%token T_AND T_BEGIN T_FORWARD T_DIV T_DO T_ELSE T_END T_FOR T_FUNCTION T_IF T_ARRAY T_MOD T_NOT T_OF T_OR T_PROCEDURE T_PROGRAM T_RECORD T_THEN T_TO T_TYPE T_VAR T_WHILE T_ID T_INT T_STR T_ASSIGNMENT T_RANGE T_RELOP T_MULOP T_ADDOP
+%token T_AND T_BEGIN T_FORWARD T_DIV T_DO T_ELSE T_END T_FOR T_FUNCTION T_IF T_ARRAY T_MOD T_NOT T_OF T_OR T_PROCEDURE T_PROGRAM T_RECORD T_THEN T_TO T_TYPE T_VAR T_WHILE T_ID T_INT T_STR T_ASSIGNMENT T_RANGE T_RELOP T_MULOP
 
 %{
 
@@ -170,7 +170,7 @@ T_PROCEDURE T_ID
 	print_label(std::string("procedure_").append(current_id));
 }
 '(' FormalParameterList {
-	current_scope -> symt[std::string("procedure ").append(current_id)] = {"void", current_scope -> symt.size()};  //procedure returns type 'void'
+	current_scope -> symt[std::string("procedure ").append(current_id)] = id_attr("void", current_scope -> symt.size());  //procedure returns type 'void'
 	current_id_attr.type = "";
 	current_id_attr.field_list.clear();
 	argc = 0;
@@ -186,7 +186,7 @@ T_FUNCTION T_ID
 	print_label(std::string("function_").append(current_id));
 } '(' FormalParameterList ')' ':' ResultType
 {
-	current_scope -> symt[std::string("function ").append(current_id)] = {exp_type, current_scope -> symt.size()};
+	current_scope -> symt[std::string("function ").append(current_id)] = id_attr(exp_type, current_scope -> symt.size());
 	current_id_attr.type = "";
 	current_id_attr.field_list.clear();
 	argc = 0;
@@ -403,6 +403,7 @@ T_INT
 |
 Sign T_INT
 {
+std::cout<<"SIGNED"<<std::endl;  //HEREHERE
 	current_const = current_sgn * atoi(yytext_ptr);
 	rules<<"Constant\n";
 }
@@ -436,9 +437,26 @@ Term Summand {rules<<"SimpleExpression\n";}
 Sign Term Summand {rules<<"SimpleExpression\n";}
 ;
 
+Sign
+:
+'+'
+{
+	current_sgn = 1;
+	print_tac(" + ");
+	rules<<"Sign\n";
+}
+|
+'-'
+{
+	current_sgn = -1;
+	print_tac(" - ");
+	rules<<"Sign\n";
+}
+;
+
 AddOp
 :
-T_ADDOP {rules<<"AddOp\n";}
+Sign {rules<<"AddOp\n";}
 |
 T_OR {rules<<"AddOp\n";}
 ;
@@ -589,22 +607,6 @@ Identifiers
 } Identifiers {rules<<"Identifiers\n";}
 ;
 
-Sign
-:
-'+'
-{
-	current_sgn = 1;
-	print_tac(" + ");
-	rules<<"Sign\n";
-}
-|
-'-'
-{
-	current_sgn = -1;
-	print_tac(" - ");
-	rules<<"Sign\n";
-}
-;
 
 %%
 
@@ -620,7 +622,7 @@ int UpdateVar(void){
 			yyerror(std::string("redeclaration of variable '").append(*itr).append("'").c_str());
 			++s_err;
 		}else{
-			current_scope -> symt[s] = {LookupTypeDef(type), current_scope -> symt.size()};
+			current_scope -> symt[s] = id_attr(LookupTypeDef(type), current_scope -> symt.size());
 		}
 	}
 	current_argv.clear();
@@ -632,7 +634,7 @@ int UpdateType(scope *next_scope){
 	if (next_scope){     /* <-- this is for FormalParameterList only */
 		for (int i = 0; i < current_argc; ++i){
 			current_id_attr.type.append(LookupTypeDef(type)).append(",");    //assumption: formal parameter overwrites variable declaration with the same name that is outside the current scope
-			next_scope -> symt[std::string("var ").append(current_argv[i])] = {LookupTypeDef(type), current_scope -> symt.size()};
+			next_scope -> symt[std::string("var ").append(current_argv[i])] = id_attr(LookupTypeDef(type), current_scope -> symt.size());
 		}
 	}else{
 		for (int i = 0; i < current_argc; ++i){
