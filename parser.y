@@ -554,21 +554,6 @@ T_ID
 		++s_err;
 	}
 	print_tac(std::string(TEMP_EQ).append(prev_id).append("\n"));
-
-
-
-
-
-
-
-
-//HEREHERE
-//	std::cout<<"exp_type == "<<exp_type<<std::endl;
-
-
-
-
-
 }
 ComponentSelection {
 	rules<<"Variable\n";
@@ -587,7 +572,12 @@ ComponentSelection
 }
 T_ID
 {
-	//if (!LookupId(current_scope, std::string("typedef ").append(exp_type
+	std::map< std::string, id_attr >::iterator t;
+	if ( (t = current_scope -> symt.find(std::string("typedef ").append(exp_type))) == current_scope -> symt.end() ){
+		yyerror(std::string("type '").append(exp_type).append("' is not defined").c_str());
+		++s_err;
+	}
+	std::cout<<"field_list with size "<< (t -> second.field_list.size()) <<std::endl;
 	print_tac(prev_id.append("\n"));  //TODO: MODIFIY EXP_TYPE TO TYPE OF THE COMPONENT
 }
 ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
