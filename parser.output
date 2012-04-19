@@ -1,0 +1,2523 @@
+State 14 conflicts: 1 reduce/reduce
+State 144 conflicts: 1 shift/reduce
+
+
+Grammar
+
+    0 $accept: Program $end
+
+    1 $@1: /* empty */
+
+    2 Program: T_PROGRAM T_ID $@1 ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
+
+    3 TypeDefinitions: T_TYPE TypeDefinition ';' _OptTypeDefinitions
+
+    4 OptTypeDefinitions: /* empty */
+    5                   | TypeDefinitions
+
+    6 _OptTypeDefinitions: /* empty */
+    7                    | TypeDefinition ';' _OptTypeDefinitions
+
+    8 $@2: /* empty */
+
+    9 $@3: /* empty */
+
+   10 TypeDefinition: T_ID $@2 '=' Type $@3
+
+   11 VariableDeclarations: T_VAR VariableDeclaration ';' _OptVariableDeclarations
+
+   12 $@4: /* empty */
+
+   13 VariableDeclaration: IdentifierList ':' Type $@4
+
+   14 OptVariableDeclarations: /* empty */
+   15                        | VariableDeclarations
+
+   16 _OptVariableDeclarations: /* empty */
+   17                         | VariableDeclaration ';' _OptVariableDeclarations
+
+   18 OptSubprogramDeclarations: /* empty */
+   19                          | SubprogramDeclarations
+
+   20 SubprogramDeclarations: /* empty */
+   21                       | SubprogramDeclaration ';' SubprogramDeclarations
+
+   22 SubprogramDeclaration: ProcedureDeclaration
+   23                      | FunctionDeclaration
+
+   24 $@5: /* empty */
+
+   25 $@6: /* empty */
+
+   26 ProcedureDeclaration: T_PROCEDURE T_ID $@5 '(' FormalParameterList $@6 ')' ';' DeclarationBody
+
+   27 $@7: /* empty */
+
+   28 $@8: /* empty */
+
+   29 FunctionDeclaration: T_FUNCTION T_ID $@7 '(' FormalParameterList ')' ':' ResultType $@8 ';' DeclarationBody
+
+   30 DeclarationBody: Block
+   31                | T_FORWARD
+
+   32 $@9: /* empty */
+
+   33 FormalParameterList: $@9
+
+   34 $@10: /* empty */
+
+   35 $@11: /* empty */
+
+   36 FormalParameterList: $@10 IdentifierList ':' Type $@11 OptIdentifiers
+
+   37 OptIdentifiers: /* empty */
+
+   38 $@12: /* empty */
+
+   39 OptIdentifiers: ';' IdentifierList ':' Type $@12 OptIdentifiers
+
+   40 $@13: /* empty */
+
+   41 Block: $@13 CompoundStatement
+   42      | VariableDeclarations CompoundStatement
+
+   43 CompoundStatement: T_BEGIN StatementSequence T_END
+
+   44 StatementSequence: Statement Statements
+
+   45 Statement: SimpleStatement
+   46          | StructuredStatement
+
+   47 SimpleStatement: /* empty */
+   48                | AssignmentStatement
+   49                | ProcedureStatement
+
+   50 $@14: /* empty */
+
+   51 AssignmentStatement: Variable $@14 T_ASSIGNMENT Expression
+
+   52 $@15: /* empty */
+
+   53 ProcedureStatement: T_ID $@15 '(' ActualParameterList ')'
+
+   54 StructuredStatement: CompoundStatement
+   55                    | T_IF Expression T_THEN Statement CloseIf
+   56                    | T_WHILE Expression T_DO Statement
+
+   57 $@16: /* empty */
+
+   58 StructuredStatement: T_FOR T_ID $@16 T_ASSIGNMENT Expression T_TO Expression T_DO Statement
+
+   59 CloseIf: /* empty */
+   60        | T_ELSE Statement
+
+   61 Statements: /* empty */
+   62           | ';' Statement Statements
+
+   63 $@17: /* empty */
+
+   64 Type: T_ID $@17
+
+   65 $@18: /* empty */
+
+   66 $@19: /* empty */
+
+   67 $@20: /* empty */
+
+   68 $@21: /* empty */
+
+   69 Type: T_ARRAY '[' Constant $@18 T_RANGE Constant $@19 ']' T_OF $@20 Type $@21
+
+   70 $@22: /* empty */
+
+   71 $@23: /* empty */
+
+   72 Type: T_RECORD $@22 FieldList T_END $@23
+
+   73 ResultType: T_ID
+
+   74 FieldList: /* empty */
+
+   75 $@24: /* empty */
+
+   76 FieldList: IdentifierList ':' Type $@24 OptIdentifiers
+
+   77 Constant: T_INT
+   78         | Sign T_INT
+
+   79 Expression: SimpleExpression
+   80           | SimpleExpression RelationalOp SimpleExpression
+
+   81 RelationalOp: T_RELOP
+   82             | '='
+
+   83 SimpleExpression: Term Summand
+   84                 | Sign Term Summand
+
+   85 AddOp: T_ADDOP
+   86      | T_OR
+
+   87 Term: Factor Multiplicand
+
+   88 Summand: /* empty */
+   89        | AddOp Term Summand
+
+   90 MulOp: T_MULOP
+   91      | T_DIV
+   92      | T_MOD
+   93      | T_AND
+
+   94 Factor: T_INT
+   95       | T_STR
+   96       | Variable
+   97       | FunctionReference
+   98       | T_NOT Factor
+   99       | '(' Expression ')'
+
+  100 Multiplicand: /* empty */
+  101             | MulOp Factor Multiplicand
+
+  102 $@25: /* empty */
+
+  103 FunctionReference: T_ID $@25 '(' ActualParameterList ')'
+
+  104 $@26: /* empty */
+
+  105 Variable: T_ID $@26 ComponentSelection
+
+  106 ComponentSelection: /* empty */
+
+  107 $@27: /* empty */
+
+  108 $@28: /* empty */
+
+  109 ComponentSelection: '.' $@27 T_ID $@28 ComponentSelection
+
+  110 $@29: /* empty */
+
+  111 $@30: /* empty */
+
+  112 ComponentSelection: '[' $@29 Expression ']' $@30 ComponentSelection
+
+  113 ActualParameterList: /* empty */
+  114                    | Expression OptExpressions
+
+  115 OptExpressions: /* empty */
+  116               | ',' Expression OptExpressions
+
+  117 $@31: /* empty */
+
+  118 IdentifierList: T_ID $@31 Identifiers
+
+  119 Identifiers: /* empty */
+
+  120 $@32: /* empty */
+
+  121 Identifiers: ',' T_ID $@32 Identifiers
+
+  122 Sign: '+'
+  123     | '-'
+
+
+Terminals, with rules where they appear
+
+$end (0) 0
+'(' (40) 26 29 53 99 103
+')' (41) 26 29 53 99 103
+'+' (43) 122
+',' (44) 116 121
+'-' (45) 123
+'.' (46) 2 109
+':' (58) 13 29 36 39 76
+';' (59) 2 3 7 11 17 21 26 29 39 62
+'=' (61) 10 82
+'[' (91) 69 112
+']' (93) 69 112
+error (256)
+T_AND (258) 93
+T_BEGIN (259) 43
+T_FORWARD (260) 31
+T_DIV (261) 91
+T_DO (262) 56 58
+T_ELSE (263) 60
+T_END (264) 43 72
+T_FOR (265) 58
+T_FUNCTION (266) 29
+T_IF (267) 55
+T_ARRAY (268) 69
+T_MOD (269) 92
+T_NOT (270) 98
+T_OF (271) 69
+T_OR (272) 86
+T_PROCEDURE (273) 26
+T_PROGRAM (274) 2
+T_RECORD (275) 72
+T_THEN (276) 55
+T_TO (277) 58
+T_TYPE (278) 3
+T_VAR (279) 11
+T_WHILE (280) 56
+T_ID (281) 2 10 26 29 53 58 64 73 103 105 109 118 121
+T_INT (282) 77 78 94
+T_STR (283) 95
+T_ASSIGNMENT (284) 51 58
+T_RANGE (285) 69
+T_RELOP (286) 81
+T_MULOP (287) 90
+T_ADDOP (288) 85
+
+
+Nonterminals, with rules where they appear
+
+$accept (45)
+    on left: 0
+Program (46)
+    on left: 2, on right: 0
+$@1 (47)
+    on left: 1, on right: 2
+TypeDefinitions (48)
+    on left: 3, on right: 5
+OptTypeDefinitions (49)
+    on left: 4 5, on right: 2
+_OptTypeDefinitions (50)
+    on left: 6 7, on right: 3 7
+TypeDefinition (51)
+    on left: 10, on right: 3 7
+$@2 (52)
+    on left: 8, on right: 10
+$@3 (53)
+    on left: 9, on right: 10
+VariableDeclarations (54)
+    on left: 11, on right: 15 42
+VariableDeclaration (55)
+    on left: 13, on right: 11 17
+$@4 (56)
+    on left: 12, on right: 13
+OptVariableDeclarations (57)
+    on left: 14 15, on right: 2
+_OptVariableDeclarations (58)
+    on left: 16 17, on right: 11 17
+OptSubprogramDeclarations (59)
+    on left: 18 19, on right: 2
+SubprogramDeclarations (60)
+    on left: 20 21, on right: 19 21
+SubprogramDeclaration (61)
+    on left: 22 23, on right: 21
+ProcedureDeclaration (62)
+    on left: 26, on right: 22
+$@5 (63)
+    on left: 24, on right: 26
+$@6 (64)
+    on left: 25, on right: 26
+FunctionDeclaration (65)
+    on left: 29, on right: 23
+$@7 (66)
+    on left: 27, on right: 29
+$@8 (67)
+    on left: 28, on right: 29
+DeclarationBody (68)
+    on left: 30 31, on right: 26 29
+FormalParameterList (69)
+    on left: 33 36, on right: 26 29
+$@9 (70)
+    on left: 32, on right: 33
+$@10 (71)
+    on left: 34, on right: 36
+$@11 (72)
+    on left: 35, on right: 36
+OptIdentifiers (73)
+    on left: 37 39, on right: 36 39 76
+$@12 (74)
+    on left: 38, on right: 39
+Block (75)
+    on left: 41 42, on right: 30
+$@13 (76)
+    on left: 40, on right: 41
+CompoundStatement (77)
+    on left: 43, on right: 2 41 42 54
+StatementSequence (78)
+    on left: 44, on right: 43
+Statement (79)
+    on left: 45 46, on right: 44 55 56 58 60 62
+SimpleStatement (80)
+    on left: 47 48 49, on right: 45
+AssignmentStatement (81)
+    on left: 51, on right: 48
+$@14 (82)
+    on left: 50, on right: 51
+ProcedureStatement (83)
+    on left: 53, on right: 49
+$@15 (84)
+    on left: 52, on right: 53
+StructuredStatement (85)
+    on left: 54 55 56 58, on right: 46
+$@16 (86)
+    on left: 57, on right: 58
+CloseIf (87)
+    on left: 59 60, on right: 55
+Statements (88)
+    on left: 61 62, on right: 44 62
+Type (89)
+    on left: 64 69 72, on right: 10 13 36 39 69 76
+$@17 (90)
+    on left: 63, on right: 64
+$@18 (91)
+    on left: 65, on right: 69
+$@19 (92)
+    on left: 66, on right: 69
+$@20 (93)
+    on left: 67, on right: 69
+$@21 (94)
+    on left: 68, on right: 69
+$@22 (95)
+    on left: 70, on right: 72
+$@23 (96)
+    on left: 71, on right: 72
+ResultType (97)
+    on left: 73, on right: 29
+FieldList (98)
+    on left: 74 76, on right: 72
+$@24 (99)
+    on left: 75, on right: 76
+Constant (100)
+    on left: 77 78, on right: 69
+Expression (101)
+    on left: 79 80, on right: 51 55 56 58 99 112 114 116
+RelationalOp (102)
+    on left: 81 82, on right: 80
+SimpleExpression (103)
+    on left: 83 84, on right: 79 80
+AddOp (104)
+    on left: 85 86, on right: 89
+Term (105)
+    on left: 87, on right: 83 84 89
+Summand (106)
+    on left: 88 89, on right: 83 84 89
+MulOp (107)
+    on left: 90 91 92 93, on right: 101
+Factor (108)
+    on left: 94 95 96 97 98 99, on right: 87 98 101
+Multiplicand (109)
+    on left: 100 101, on right: 87 101
+FunctionReference (110)
+    on left: 103, on right: 97
+$@25 (111)
+    on left: 102, on right: 103
+Variable (112)
+    on left: 105, on right: 51 96
+$@26 (113)
+    on left: 104, on right: 105
+ComponentSelection (114)
+    on left: 106 109 112, on right: 105 109 112
+$@27 (115)
+    on left: 107, on right: 109
+$@28 (116)
+    on left: 108, on right: 109
+$@29 (117)
+    on left: 110, on right: 112
+$@30 (118)
+    on left: 111, on right: 112
+ActualParameterList (119)
+    on left: 113 114, on right: 53 103
+OptExpressions (120)
+    on left: 115 116, on right: 114 116
+IdentifierList (121)
+    on left: 118, on right: 13 36 39 76
+$@31 (122)
+    on left: 117, on right: 118
+Identifiers (123)
+    on left: 119 121, on right: 118 121
+$@32 (124)
+    on left: 120, on right: 121
+Sign (125)
+    on left: 122 123, on right: 78 84
+
+
+state 0
+
+    0 $accept: . Program $end
+
+    T_PROGRAM  shift, and go to state 1
+
+    Program  go to state 2
+
+
+state 1
+
+    2 Program: T_PROGRAM . T_ID $@1 ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
+
+    T_ID  shift, and go to state 3
+
+
+state 2
+
+    0 $accept: Program . $end
+
+    $end  shift, and go to state 4
+
+
+state 3
+
+    2 Program: T_PROGRAM T_ID . $@1 ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
+
+    $default  reduce using rule 1 ($@1)
+
+    $@1  go to state 5
+
+
+state 4
+
+    0 $accept: Program $end .
+
+    $default  accept
+
+
+state 5
+
+    2 Program: T_PROGRAM T_ID $@1 . ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
+
+    ';'  shift, and go to state 6
+
+
+state 6
+
+    2 Program: T_PROGRAM T_ID $@1 ';' . OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
+
+    T_TYPE  shift, and go to state 7
+
+    $default  reduce using rule 4 (OptTypeDefinitions)
+
+    TypeDefinitions     go to state 8
+    OptTypeDefinitions  go to state 9
+
+
+state 7
+
+    3 TypeDefinitions: T_TYPE . TypeDefinition ';' _OptTypeDefinitions
+
+    T_ID  shift, and go to state 10
+
+    TypeDefinition  go to state 11
+
+
+state 8
+
+    5 OptTypeDefinitions: TypeDefinitions .
+
+    $default  reduce using rule 5 (OptTypeDefinitions)
+
+
+state 9
+
+    2 Program: T_PROGRAM T_ID $@1 ';' OptTypeDefinitions . OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
+
+    T_VAR  shift, and go to state 12
+
+    $default  reduce using rule 14 (OptVariableDeclarations)
+
+    VariableDeclarations     go to state 13
+    OptVariableDeclarations  go to state 14
+
+
+state 10
+
+   10 TypeDefinition: T_ID . $@2 '=' Type $@3
+
+    $default  reduce using rule 8 ($@2)
+
+    $@2  go to state 15
+
+
+state 11
+
+    3 TypeDefinitions: T_TYPE TypeDefinition . ';' _OptTypeDefinitions
+
+    ';'  shift, and go to state 16
+
+
+state 12
+
+   11 VariableDeclarations: T_VAR . VariableDeclaration ';' _OptVariableDeclarations
+
+    T_ID  shift, and go to state 17
+
+    VariableDeclaration  go to state 18
+    IdentifierList       go to state 19
+
+
+state 13
+
+   15 OptVariableDeclarations: VariableDeclarations .
+
+    $default  reduce using rule 15 (OptVariableDeclarations)
+
+
+state 14
+
+    2 Program: T_PROGRAM T_ID $@1 ';' OptTypeDefinitions OptVariableDeclarations . OptSubprogramDeclarations CompoundStatement '.'
+
+    T_FUNCTION   shift, and go to state 20
+    T_PROCEDURE  shift, and go to state 21
+
+    T_BEGIN   reduce using rule 18 (OptSubprogramDeclarations)
+    T_BEGIN   [reduce using rule 20 (SubprogramDeclarations)]
+    $default  reduce using rule 18 (OptSubprogramDeclarations)
+
+    OptSubprogramDeclarations  go to state 22
+    SubprogramDeclarations     go to state 23
+    SubprogramDeclaration      go to state 24
+    ProcedureDeclaration       go to state 25
+    FunctionDeclaration        go to state 26
+
+
+state 15
+
+   10 TypeDefinition: T_ID $@2 . '=' Type $@3
+
+    '='  shift, and go to state 27
+
+
+state 16
+
+    3 TypeDefinitions: T_TYPE TypeDefinition ';' . _OptTypeDefinitions
+
+    T_ID  shift, and go to state 10
+
+    $default  reduce using rule 6 (_OptTypeDefinitions)
+
+    _OptTypeDefinitions  go to state 28
+    TypeDefinition       go to state 29
+
+
+state 17
+
+  118 IdentifierList: T_ID . $@31 Identifiers
+
+    $default  reduce using rule 117 ($@31)
+
+    $@31  go to state 30
+
+
+state 18
+
+   11 VariableDeclarations: T_VAR VariableDeclaration . ';' _OptVariableDeclarations
+
+    ';'  shift, and go to state 31
+
+
+state 19
+
+   13 VariableDeclaration: IdentifierList . ':' Type $@4
+
+    ':'  shift, and go to state 32
+
+
+state 20
+
+   29 FunctionDeclaration: T_FUNCTION . T_ID $@7 '(' FormalParameterList ')' ':' ResultType $@8 ';' DeclarationBody
+
+    T_ID  shift, and go to state 33
+
+
+state 21
+
+   26 ProcedureDeclaration: T_PROCEDURE . T_ID $@5 '(' FormalParameterList $@6 ')' ';' DeclarationBody
+
+    T_ID  shift, and go to state 34
+
+
+state 22
+
+    2 Program: T_PROGRAM T_ID $@1 ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations . CompoundStatement '.'
+
+    T_BEGIN  shift, and go to state 35
+
+    CompoundStatement  go to state 36
+
+
+state 23
+
+   19 OptSubprogramDeclarations: SubprogramDeclarations .
+
+    $default  reduce using rule 19 (OptSubprogramDeclarations)
+
+
+state 24
+
+   21 SubprogramDeclarations: SubprogramDeclaration . ';' SubprogramDeclarations
+
+    ';'  shift, and go to state 37
+
+
+state 25
+
+   22 SubprogramDeclaration: ProcedureDeclaration .
+
+    $default  reduce using rule 22 (SubprogramDeclaration)
+
+
+state 26
+
+   23 SubprogramDeclaration: FunctionDeclaration .
+
+    $default  reduce using rule 23 (SubprogramDeclaration)
+
+
+state 27
+
+   10 TypeDefinition: T_ID $@2 '=' . Type $@3
+
+    T_ARRAY   shift, and go to state 38
+    T_RECORD  shift, and go to state 39
+    T_ID      shift, and go to state 40
+
+    Type  go to state 41
+
+
+state 28
+
+    3 TypeDefinitions: T_TYPE TypeDefinition ';' _OptTypeDefinitions .
+
+    $default  reduce using rule 3 (TypeDefinitions)
+
+
+state 29
+
+    7 _OptTypeDefinitions: TypeDefinition . ';' _OptTypeDefinitions
+
+    ';'  shift, and go to state 42
+
+
+state 30
+
+  118 IdentifierList: T_ID $@31 . Identifiers
+
+    ','  shift, and go to state 43
+
+    $default  reduce using rule 119 (Identifiers)
+
+    Identifiers  go to state 44
+
+
+state 31
+
+   11 VariableDeclarations: T_VAR VariableDeclaration ';' . _OptVariableDeclarations
+
+    T_ID  shift, and go to state 17
+
+    $default  reduce using rule 16 (_OptVariableDeclarations)
+
+    VariableDeclaration       go to state 45
+    _OptVariableDeclarations  go to state 46
+    IdentifierList            go to state 19
+
+
+state 32
+
+   13 VariableDeclaration: IdentifierList ':' . Type $@4
+
+    T_ARRAY   shift, and go to state 38
+    T_RECORD  shift, and go to state 39
+    T_ID      shift, and go to state 40
+
+    Type  go to state 47
+
+
+state 33
+
+   29 FunctionDeclaration: T_FUNCTION T_ID . $@7 '(' FormalParameterList ')' ':' ResultType $@8 ';' DeclarationBody
+
+    $default  reduce using rule 27 ($@7)
+
+    $@7  go to state 48
+
+
+state 34
+
+   26 ProcedureDeclaration: T_PROCEDURE T_ID . $@5 '(' FormalParameterList $@6 ')' ';' DeclarationBody
+
+    $default  reduce using rule 24 ($@5)
+
+    $@5  go to state 49
+
+
+state 35
+
+   43 CompoundStatement: T_BEGIN . StatementSequence T_END
+
+    T_BEGIN  shift, and go to state 35
+    T_FOR    shift, and go to state 50
+    T_IF     shift, and go to state 51
+    T_WHILE  shift, and go to state 52
+    T_ID     shift, and go to state 53
+
+    $default  reduce using rule 47 (SimpleStatement)
+
+    CompoundStatement    go to state 54
+    StatementSequence    go to state 55
+    Statement            go to state 56
+    SimpleStatement      go to state 57
+    AssignmentStatement  go to state 58
+    ProcedureStatement   go to state 59
+    StructuredStatement  go to state 60
+    Variable             go to state 61
+
+
+state 36
+
+    2 Program: T_PROGRAM T_ID $@1 ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement . '.'
+
+    '.'  shift, and go to state 62
+
+
+state 37
+
+   21 SubprogramDeclarations: SubprogramDeclaration ';' . SubprogramDeclarations
+
+    T_FUNCTION   shift, and go to state 20
+    T_PROCEDURE  shift, and go to state 21
+
+    $default  reduce using rule 20 (SubprogramDeclarations)
+
+    SubprogramDeclarations  go to state 63
+    SubprogramDeclaration   go to state 24
+    ProcedureDeclaration    go to state 25
+    FunctionDeclaration     go to state 26
+
+
+state 38
+
+   69 Type: T_ARRAY . '[' Constant $@18 T_RANGE Constant $@19 ']' T_OF $@20 Type $@21
+
+    '['  shift, and go to state 64
+
+
+state 39
+
+   72 Type: T_RECORD . $@22 FieldList T_END $@23
+
+    $default  reduce using rule 70 ($@22)
+
+    $@22  go to state 65
+
+
+state 40
+
+   64 Type: T_ID . $@17
+
+    $default  reduce using rule 63 ($@17)
+
+    $@17  go to state 66
+
+
+state 41
+
+   10 TypeDefinition: T_ID $@2 '=' Type . $@3
+
+    $default  reduce using rule 9 ($@3)
+
+    $@3  go to state 67
+
+
+state 42
+
+    7 _OptTypeDefinitions: TypeDefinition ';' . _OptTypeDefinitions
+
+    T_ID  shift, and go to state 10
+
+    $default  reduce using rule 6 (_OptTypeDefinitions)
+
+    _OptTypeDefinitions  go to state 68
+    TypeDefinition       go to state 29
+
+
+state 43
+
+  121 Identifiers: ',' . T_ID $@32 Identifiers
+
+    T_ID  shift, and go to state 69
+
+
+state 44
+
+  118 IdentifierList: T_ID $@31 Identifiers .
+
+    $default  reduce using rule 118 (IdentifierList)
+
+
+state 45
+
+   17 _OptVariableDeclarations: VariableDeclaration . ';' _OptVariableDeclarations
+
+    ';'  shift, and go to state 70
+
+
+state 46
+
+   11 VariableDeclarations: T_VAR VariableDeclaration ';' _OptVariableDeclarations .
+
+    $default  reduce using rule 11 (VariableDeclarations)
+
+
+state 47
+
+   13 VariableDeclaration: IdentifierList ':' Type . $@4
+
+    $default  reduce using rule 12 ($@4)
+
+    $@4  go to state 71
+
+
+state 48
+
+   29 FunctionDeclaration: T_FUNCTION T_ID $@7 . '(' FormalParameterList ')' ':' ResultType $@8 ';' DeclarationBody
+
+    '('  shift, and go to state 72
+
+
+state 49
+
+   26 ProcedureDeclaration: T_PROCEDURE T_ID $@5 . '(' FormalParameterList $@6 ')' ';' DeclarationBody
+
+    '('  shift, and go to state 73
+
+
+state 50
+
+   58 StructuredStatement: T_FOR . T_ID $@16 T_ASSIGNMENT Expression T_TO Expression T_DO Statement
+
+    T_ID  shift, and go to state 74
+
+
+state 51
+
+   55 StructuredStatement: T_IF . Expression T_THEN Statement CloseIf
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+    '+'    shift, and go to state 80
+    '-'    shift, and go to state 81
+
+    Expression         go to state 82
+    SimpleExpression   go to state 83
+    Term               go to state 84
+    Factor             go to state 85
+    FunctionReference  go to state 86
+    Variable           go to state 87
+    Sign               go to state 88
+
+
+state 52
+
+   56 StructuredStatement: T_WHILE . Expression T_DO Statement
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+    '+'    shift, and go to state 80
+    '-'    shift, and go to state 81
+
+    Expression         go to state 89
+    SimpleExpression   go to state 83
+    Term               go to state 84
+    Factor             go to state 85
+    FunctionReference  go to state 86
+    Variable           go to state 87
+    Sign               go to state 88
+
+
+state 53
+
+   53 ProcedureStatement: T_ID . $@15 '(' ActualParameterList ')'
+  105 Variable: T_ID . $@26 ComponentSelection
+
+    '('       reduce using rule 52 ($@15)
+    $default  reduce using rule 104 ($@26)
+
+    $@15  go to state 90
+    $@26  go to state 91
+
+
+state 54
+
+   54 StructuredStatement: CompoundStatement .
+
+    $default  reduce using rule 54 (StructuredStatement)
+
+
+state 55
+
+   43 CompoundStatement: T_BEGIN StatementSequence . T_END
+
+    T_END  shift, and go to state 92
+
+
+state 56
+
+   44 StatementSequence: Statement . Statements
+
+    ';'  shift, and go to state 93
+
+    $default  reduce using rule 61 (Statements)
+
+    Statements  go to state 94
+
+
+state 57
+
+   45 Statement: SimpleStatement .
+
+    $default  reduce using rule 45 (Statement)
+
+
+state 58
+
+   48 SimpleStatement: AssignmentStatement .
+
+    $default  reduce using rule 48 (SimpleStatement)
+
+
+state 59
+
+   49 SimpleStatement: ProcedureStatement .
+
+    $default  reduce using rule 49 (SimpleStatement)
+
+
+state 60
+
+   46 Statement: StructuredStatement .
+
+    $default  reduce using rule 46 (Statement)
+
+
+state 61
+
+   51 AssignmentStatement: Variable . $@14 T_ASSIGNMENT Expression
+
+    $default  reduce using rule 50 ($@14)
+
+    $@14  go to state 95
+
+
+state 62
+
+    2 Program: T_PROGRAM T_ID $@1 ';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.' .
+
+    $default  reduce using rule 2 (Program)
+
+
+state 63
+
+   21 SubprogramDeclarations: SubprogramDeclaration ';' SubprogramDeclarations .
+
+    $default  reduce using rule 21 (SubprogramDeclarations)
+
+
+state 64
+
+   69 Type: T_ARRAY '[' . Constant $@18 T_RANGE Constant $@19 ']' T_OF $@20 Type $@21
+
+    T_INT  shift, and go to state 96
+    '+'    shift, and go to state 80
+    '-'    shift, and go to state 81
+
+    Constant  go to state 97
+    Sign      go to state 98
+
+
+state 65
+
+   72 Type: T_RECORD $@22 . FieldList T_END $@23
+
+    T_ID  shift, and go to state 17
+
+    $default  reduce using rule 74 (FieldList)
+
+    FieldList       go to state 99
+    IdentifierList  go to state 100
+
+
+state 66
+
+   64 Type: T_ID $@17 .
+
+    $default  reduce using rule 64 (Type)
+
+
+state 67
+
+   10 TypeDefinition: T_ID $@2 '=' Type $@3 .
+
+    $default  reduce using rule 10 (TypeDefinition)
+
+
+state 68
+
+    7 _OptTypeDefinitions: TypeDefinition ';' _OptTypeDefinitions .
+
+    $default  reduce using rule 7 (_OptTypeDefinitions)
+
+
+state 69
+
+  121 Identifiers: ',' T_ID . $@32 Identifiers
+
+    $default  reduce using rule 120 ($@32)
+
+    $@32  go to state 101
+
+
+state 70
+
+   17 _OptVariableDeclarations: VariableDeclaration ';' . _OptVariableDeclarations
+
+    T_ID  shift, and go to state 17
+
+    $default  reduce using rule 16 (_OptVariableDeclarations)
+
+    VariableDeclaration       go to state 45
+    _OptVariableDeclarations  go to state 102
+    IdentifierList            go to state 19
+
+
+state 71
+
+   13 VariableDeclaration: IdentifierList ':' Type $@4 .
+
+    $default  reduce using rule 13 (VariableDeclaration)
+
+
+state 72
+
+   29 FunctionDeclaration: T_FUNCTION T_ID $@7 '(' . FormalParameterList ')' ':' ResultType $@8 ';' DeclarationBody
+
+    T_ID      reduce using rule 34 ($@10)
+    $default  reduce using rule 32 ($@9)
+
+    FormalParameterList  go to state 103
+    $@9                  go to state 104
+    $@10                 go to state 105
+
+
+state 73
+
+   26 ProcedureDeclaration: T_PROCEDURE T_ID $@5 '(' . FormalParameterList $@6 ')' ';' DeclarationBody
+
+    T_ID      reduce using rule 34 ($@10)
+    $default  reduce using rule 32 ($@9)
+
+    FormalParameterList  go to state 106
+    $@9                  go to state 104
+    $@10                 go to state 105
+
+
+state 74
+
+   58 StructuredStatement: T_FOR T_ID . $@16 T_ASSIGNMENT Expression T_TO Expression T_DO Statement
+
+    $default  reduce using rule 57 ($@16)
+
+    $@16  go to state 107
+
+
+state 75
+
+   98 Factor: T_NOT . Factor
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+
+    Factor             go to state 108
+    FunctionReference  go to state 86
+    Variable           go to state 87
+
+
+state 76
+
+  103 FunctionReference: T_ID . $@25 '(' ActualParameterList ')'
+  105 Variable: T_ID . $@26 ComponentSelection
+
+    '('       reduce using rule 102 ($@25)
+    $default  reduce using rule 104 ($@26)
+
+    $@25  go to state 109
+    $@26  go to state 91
+
+
+state 77
+
+   94 Factor: T_INT .
+
+    $default  reduce using rule 94 (Factor)
+
+
+state 78
+
+   95 Factor: T_STR .
+
+    $default  reduce using rule 95 (Factor)
+
+
+state 79
+
+   99 Factor: '(' . Expression ')'
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+    '+'    shift, and go to state 80
+    '-'    shift, and go to state 81
+
+    Expression         go to state 110
+    SimpleExpression   go to state 83
+    Term               go to state 84
+    Factor             go to state 85
+    FunctionReference  go to state 86
+    Variable           go to state 87
+    Sign               go to state 88
+
+
+state 80
+
+  122 Sign: '+' .
+
+    $default  reduce using rule 122 (Sign)
+
+
+state 81
+
+  123 Sign: '-' .
+
+    $default  reduce using rule 123 (Sign)
+
+
+state 82
+
+   55 StructuredStatement: T_IF Expression . T_THEN Statement CloseIf
+
+    T_THEN  shift, and go to state 111
+
+
+state 83
+
+   79 Expression: SimpleExpression .
+   80           | SimpleExpression . RelationalOp SimpleExpression
+
+    T_RELOP  shift, and go to state 112
+    '='      shift, and go to state 113
+
+    $default  reduce using rule 79 (Expression)
+
+    RelationalOp  go to state 114
+
+
+state 84
+
+   83 SimpleExpression: Term . Summand
+
+    T_OR     shift, and go to state 115
+    T_ADDOP  shift, and go to state 116
+
+    $default  reduce using rule 88 (Summand)
+
+    AddOp    go to state 117
+    Summand  go to state 118
+
+
+state 85
+
+   87 Term: Factor . Multiplicand
+
+    T_AND    shift, and go to state 119
+    T_DIV    shift, and go to state 120
+    T_MOD    shift, and go to state 121
+    T_MULOP  shift, and go to state 122
+
+    $default  reduce using rule 100 (Multiplicand)
+
+    MulOp         go to state 123
+    Multiplicand  go to state 124
+
+
+state 86
+
+   97 Factor: FunctionReference .
+
+    $default  reduce using rule 97 (Factor)
+
+
+state 87
+
+   96 Factor: Variable .
+
+    $default  reduce using rule 96 (Factor)
+
+
+state 88
+
+   84 SimpleExpression: Sign . Term Summand
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+
+    Term               go to state 125
+    Factor             go to state 85
+    FunctionReference  go to state 86
+    Variable           go to state 87
+
+
+state 89
+
+   56 StructuredStatement: T_WHILE Expression . T_DO Statement
+
+    T_DO  shift, and go to state 126
+
+
+state 90
+
+   53 ProcedureStatement: T_ID $@15 . '(' ActualParameterList ')'
+
+    '('  shift, and go to state 127
+
+
+state 91
+
+  105 Variable: T_ID $@26 . ComponentSelection
+
+    '.'  shift, and go to state 128
+    '['  shift, and go to state 129
+
+    $default  reduce using rule 106 (ComponentSelection)
+
+    ComponentSelection  go to state 130
+
+
+state 92
+
+   43 CompoundStatement: T_BEGIN StatementSequence T_END .
+
+    $default  reduce using rule 43 (CompoundStatement)
+
+
+state 93
+
+   62 Statements: ';' . Statement Statements
+
+    T_BEGIN  shift, and go to state 35
+    T_FOR    shift, and go to state 50
+    T_IF     shift, and go to state 51
+    T_WHILE  shift, and go to state 52
+    T_ID     shift, and go to state 53
+
+    $default  reduce using rule 47 (SimpleStatement)
+
+    CompoundStatement    go to state 54
+    Statement            go to state 131
+    SimpleStatement      go to state 57
+    AssignmentStatement  go to state 58
+    ProcedureStatement   go to state 59
+    StructuredStatement  go to state 60
+    Variable             go to state 61
+
+
+state 94
+
+   44 StatementSequence: Statement Statements .
+
+    $default  reduce using rule 44 (StatementSequence)
+
+
+state 95
+
+   51 AssignmentStatement: Variable $@14 . T_ASSIGNMENT Expression
+
+    T_ASSIGNMENT  shift, and go to state 132
+
+
+state 96
+
+   77 Constant: T_INT .
+
+    $default  reduce using rule 77 (Constant)
+
+
+state 97
+
+   69 Type: T_ARRAY '[' Constant . $@18 T_RANGE Constant $@19 ']' T_OF $@20 Type $@21
+
+    $default  reduce using rule 65 ($@18)
+
+    $@18  go to state 133
+
+
+state 98
+
+   78 Constant: Sign . T_INT
+
+    T_INT  shift, and go to state 134
+
+
+state 99
+
+   72 Type: T_RECORD $@22 FieldList . T_END $@23
+
+    T_END  shift, and go to state 135
+
+
+state 100
+
+   76 FieldList: IdentifierList . ':' Type $@24 OptIdentifiers
+
+    ':'  shift, and go to state 136
+
+
+state 101
+
+  121 Identifiers: ',' T_ID $@32 . Identifiers
+
+    ','  shift, and go to state 43
+
+    $default  reduce using rule 119 (Identifiers)
+
+    Identifiers  go to state 137
+
+
+state 102
+
+   17 _OptVariableDeclarations: VariableDeclaration ';' _OptVariableDeclarations .
+
+    $default  reduce using rule 17 (_OptVariableDeclarations)
+
+
+state 103
+
+   29 FunctionDeclaration: T_FUNCTION T_ID $@7 '(' FormalParameterList . ')' ':' ResultType $@8 ';' DeclarationBody
+
+    ')'  shift, and go to state 138
+
+
+state 104
+
+   33 FormalParameterList: $@9 .
+
+    $default  reduce using rule 33 (FormalParameterList)
+
+
+state 105
+
+   36 FormalParameterList: $@10 . IdentifierList ':' Type $@11 OptIdentifiers
+
+    T_ID  shift, and go to state 17
+
+    IdentifierList  go to state 139
+
+
+state 106
+
+   26 ProcedureDeclaration: T_PROCEDURE T_ID $@5 '(' FormalParameterList . $@6 ')' ';' DeclarationBody
+
+    $default  reduce using rule 25 ($@6)
+
+    $@6  go to state 140
+
+
+state 107
+
+   58 StructuredStatement: T_FOR T_ID $@16 . T_ASSIGNMENT Expression T_TO Expression T_DO Statement
+
+    T_ASSIGNMENT  shift, and go to state 141
+
+
+state 108
+
+   98 Factor: T_NOT Factor .
+
+    $default  reduce using rule 98 (Factor)
+
+
+state 109
+
+  103 FunctionReference: T_ID $@25 . '(' ActualParameterList ')'
+
+    '('  shift, and go to state 142
+
+
+state 110
+
+   99 Factor: '(' Expression . ')'
+
+    ')'  shift, and go to state 143
+
+
+state 111
+
+   55 StructuredStatement: T_IF Expression T_THEN . Statement CloseIf
+
+    T_BEGIN  shift, and go to state 35
+    T_FOR    shift, and go to state 50
+    T_IF     shift, and go to state 51
+    T_WHILE  shift, and go to state 52
+    T_ID     shift, and go to state 53
+
+    $default  reduce using rule 47 (SimpleStatement)
+
+    CompoundStatement    go to state 54
+    Statement            go to state 144
+    SimpleStatement      go to state 57
+    AssignmentStatement  go to state 58
+    ProcedureStatement   go to state 59
+    StructuredStatement  go to state 60
+    Variable             go to state 61
+
+
+state 112
+
+   81 RelationalOp: T_RELOP .
+
+    $default  reduce using rule 81 (RelationalOp)
+
+
+state 113
+
+   82 RelationalOp: '=' .
+
+    $default  reduce using rule 82 (RelationalOp)
+
+
+state 114
+
+   80 Expression: SimpleExpression RelationalOp . SimpleExpression
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+    '+'    shift, and go to state 80
+    '-'    shift, and go to state 81
+
+    SimpleExpression   go to state 145
+    Term               go to state 84
+    Factor             go to state 85
+    FunctionReference  go to state 86
+    Variable           go to state 87
+    Sign               go to state 88
+
+
+state 115
+
+   86 AddOp: T_OR .
+
+    $default  reduce using rule 86 (AddOp)
+
+
+state 116
+
+   85 AddOp: T_ADDOP .
+
+    $default  reduce using rule 85 (AddOp)
+
+
+state 117
+
+   89 Summand: AddOp . Term Summand
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+
+    Term               go to state 146
+    Factor             go to state 85
+    FunctionReference  go to state 86
+    Variable           go to state 87
+
+
+state 118
+
+   83 SimpleExpression: Term Summand .
+
+    $default  reduce using rule 83 (SimpleExpression)
+
+
+state 119
+
+   93 MulOp: T_AND .
+
+    $default  reduce using rule 93 (MulOp)
+
+
+state 120
+
+   91 MulOp: T_DIV .
+
+    $default  reduce using rule 91 (MulOp)
+
+
+state 121
+
+   92 MulOp: T_MOD .
+
+    $default  reduce using rule 92 (MulOp)
+
+
+state 122
+
+   90 MulOp: T_MULOP .
+
+    $default  reduce using rule 90 (MulOp)
+
+
+state 123
+
+  101 Multiplicand: MulOp . Factor Multiplicand
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+
+    Factor             go to state 147
+    FunctionReference  go to state 86
+    Variable           go to state 87
+
+
+state 124
+
+   87 Term: Factor Multiplicand .
+
+    $default  reduce using rule 87 (Term)
+
+
+state 125
+
+   84 SimpleExpression: Sign Term . Summand
+
+    T_OR     shift, and go to state 115
+    T_ADDOP  shift, and go to state 116
+
+    $default  reduce using rule 88 (Summand)
+
+    AddOp    go to state 117
+    Summand  go to state 148
+
+
+state 126
+
+   56 StructuredStatement: T_WHILE Expression T_DO . Statement
+
+    T_BEGIN  shift, and go to state 35
+    T_FOR    shift, and go to state 50
+    T_IF     shift, and go to state 51
+    T_WHILE  shift, and go to state 52
+    T_ID     shift, and go to state 53
+
+    $default  reduce using rule 47 (SimpleStatement)
+
+    CompoundStatement    go to state 54
+    Statement            go to state 149
+    SimpleStatement      go to state 57
+    AssignmentStatement  go to state 58
+    ProcedureStatement   go to state 59
+    StructuredStatement  go to state 60
+    Variable             go to state 61
+
+
+state 127
+
+   53 ProcedureStatement: T_ID $@15 '(' . ActualParameterList ')'
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+    '+'    shift, and go to state 80
+    '-'    shift, and go to state 81
+
+    $default  reduce using rule 113 (ActualParameterList)
+
+    Expression           go to state 150
+    SimpleExpression     go to state 83
+    Term                 go to state 84
+    Factor               go to state 85
+    FunctionReference    go to state 86
+    Variable             go to state 87
+    ActualParameterList  go to state 151
+    Sign                 go to state 88
+
+
+state 128
+
+  109 ComponentSelection: '.' . $@27 T_ID $@28 ComponentSelection
+
+    $default  reduce using rule 107 ($@27)
+
+    $@27  go to state 152
+
+
+state 129
+
+  112 ComponentSelection: '[' . $@29 Expression ']' $@30 ComponentSelection
+
+    $default  reduce using rule 110 ($@29)
+
+    $@29  go to state 153
+
+
+state 130
+
+  105 Variable: T_ID $@26 ComponentSelection .
+
+    $default  reduce using rule 105 (Variable)
+
+
+state 131
+
+   62 Statements: ';' Statement . Statements
+
+    ';'  shift, and go to state 93
+
+    $default  reduce using rule 61 (Statements)
+
+    Statements  go to state 154
+
+
+state 132
+
+   51 AssignmentStatement: Variable $@14 T_ASSIGNMENT . Expression
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+    '+'    shift, and go to state 80
+    '-'    shift, and go to state 81
+
+    Expression         go to state 155
+    SimpleExpression   go to state 83
+    Term               go to state 84
+    Factor             go to state 85
+    FunctionReference  go to state 86
+    Variable           go to state 87
+    Sign               go to state 88
+
+
+state 133
+
+   69 Type: T_ARRAY '[' Constant $@18 . T_RANGE Constant $@19 ']' T_OF $@20 Type $@21
+
+    T_RANGE  shift, and go to state 156
+
+
+state 134
+
+   78 Constant: Sign T_INT .
+
+    $default  reduce using rule 78 (Constant)
+
+
+state 135
+
+   72 Type: T_RECORD $@22 FieldList T_END . $@23
+
+    $default  reduce using rule 71 ($@23)
+
+    $@23  go to state 157
+
+
+state 136
+
+   76 FieldList: IdentifierList ':' . Type $@24 OptIdentifiers
+
+    T_ARRAY   shift, and go to state 38
+    T_RECORD  shift, and go to state 39
+    T_ID      shift, and go to state 40
+
+    Type  go to state 158
+
+
+state 137
+
+  121 Identifiers: ',' T_ID $@32 Identifiers .
+
+    $default  reduce using rule 121 (Identifiers)
+
+
+state 138
+
+   29 FunctionDeclaration: T_FUNCTION T_ID $@7 '(' FormalParameterList ')' . ':' ResultType $@8 ';' DeclarationBody
+
+    ':'  shift, and go to state 159
+
+
+state 139
+
+   36 FormalParameterList: $@10 IdentifierList . ':' Type $@11 OptIdentifiers
+
+    ':'  shift, and go to state 160
+
+
+state 140
+
+   26 ProcedureDeclaration: T_PROCEDURE T_ID $@5 '(' FormalParameterList $@6 . ')' ';' DeclarationBody
+
+    ')'  shift, and go to state 161
+
+
+state 141
+
+   58 StructuredStatement: T_FOR T_ID $@16 T_ASSIGNMENT . Expression T_TO Expression T_DO Statement
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+    '+'    shift, and go to state 80
+    '-'    shift, and go to state 81
+
+    Expression         go to state 162
+    SimpleExpression   go to state 83
+    Term               go to state 84
+    Factor             go to state 85
+    FunctionReference  go to state 86
+    Variable           go to state 87
+    Sign               go to state 88
+
+
+state 142
+
+  103 FunctionReference: T_ID $@25 '(' . ActualParameterList ')'
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+    '+'    shift, and go to state 80
+    '-'    shift, and go to state 81
+
+    $default  reduce using rule 113 (ActualParameterList)
+
+    Expression           go to state 150
+    SimpleExpression     go to state 83
+    Term                 go to state 84
+    Factor               go to state 85
+    FunctionReference    go to state 86
+    Variable             go to state 87
+    ActualParameterList  go to state 163
+    Sign                 go to state 88
+
+
+state 143
+
+   99 Factor: '(' Expression ')' .
+
+    $default  reduce using rule 99 (Factor)
+
+
+state 144
+
+   55 StructuredStatement: T_IF Expression T_THEN Statement . CloseIf
+
+    T_ELSE  shift, and go to state 164
+
+    T_ELSE    [reduce using rule 59 (CloseIf)]
+    $default  reduce using rule 59 (CloseIf)
+
+    CloseIf  go to state 165
+
+
+state 145
+
+   80 Expression: SimpleExpression RelationalOp SimpleExpression .
+
+    $default  reduce using rule 80 (Expression)
+
+
+state 146
+
+   89 Summand: AddOp Term . Summand
+
+    T_OR     shift, and go to state 115
+    T_ADDOP  shift, and go to state 116
+
+    $default  reduce using rule 88 (Summand)
+
+    AddOp    go to state 117
+    Summand  go to state 166
+
+
+state 147
+
+  101 Multiplicand: MulOp Factor . Multiplicand
+
+    T_AND    shift, and go to state 119
+    T_DIV    shift, and go to state 120
+    T_MOD    shift, and go to state 121
+    T_MULOP  shift, and go to state 122
+
+    $default  reduce using rule 100 (Multiplicand)
+
+    MulOp         go to state 123
+    Multiplicand  go to state 167
+
+
+state 148
+
+   84 SimpleExpression: Sign Term Summand .
+
+    $default  reduce using rule 84 (SimpleExpression)
+
+
+state 149
+
+   56 StructuredStatement: T_WHILE Expression T_DO Statement .
+
+    $default  reduce using rule 56 (StructuredStatement)
+
+
+state 150
+
+  114 ActualParameterList: Expression . OptExpressions
+
+    ','  shift, and go to state 168
+
+    $default  reduce using rule 115 (OptExpressions)
+
+    OptExpressions  go to state 169
+
+
+state 151
+
+   53 ProcedureStatement: T_ID $@15 '(' ActualParameterList . ')'
+
+    ')'  shift, and go to state 170
+
+
+state 152
+
+  109 ComponentSelection: '.' $@27 . T_ID $@28 ComponentSelection
+
+    T_ID  shift, and go to state 171
+
+
+state 153
+
+  112 ComponentSelection: '[' $@29 . Expression ']' $@30 ComponentSelection
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+    '+'    shift, and go to state 80
+    '-'    shift, and go to state 81
+
+    Expression         go to state 172
+    SimpleExpression   go to state 83
+    Term               go to state 84
+    Factor             go to state 85
+    FunctionReference  go to state 86
+    Variable           go to state 87
+    Sign               go to state 88
+
+
+state 154
+
+   62 Statements: ';' Statement Statements .
+
+    $default  reduce using rule 62 (Statements)
+
+
+state 155
+
+   51 AssignmentStatement: Variable $@14 T_ASSIGNMENT Expression .
+
+    $default  reduce using rule 51 (AssignmentStatement)
+
+
+state 156
+
+   69 Type: T_ARRAY '[' Constant $@18 T_RANGE . Constant $@19 ']' T_OF $@20 Type $@21
+
+    T_INT  shift, and go to state 96
+    '+'    shift, and go to state 80
+    '-'    shift, and go to state 81
+
+    Constant  go to state 173
+    Sign      go to state 98
+
+
+state 157
+
+   72 Type: T_RECORD $@22 FieldList T_END $@23 .
+
+    $default  reduce using rule 72 (Type)
+
+
+state 158
+
+   76 FieldList: IdentifierList ':' Type . $@24 OptIdentifiers
+
+    $default  reduce using rule 75 ($@24)
+
+    $@24  go to state 174
+
+
+state 159
+
+   29 FunctionDeclaration: T_FUNCTION T_ID $@7 '(' FormalParameterList ')' ':' . ResultType $@8 ';' DeclarationBody
+
+    T_ID  shift, and go to state 175
+
+    ResultType  go to state 176
+
+
+state 160
+
+   36 FormalParameterList: $@10 IdentifierList ':' . Type $@11 OptIdentifiers
+
+    T_ARRAY   shift, and go to state 38
+    T_RECORD  shift, and go to state 39
+    T_ID      shift, and go to state 40
+
+    Type  go to state 177
+
+
+state 161
+
+   26 ProcedureDeclaration: T_PROCEDURE T_ID $@5 '(' FormalParameterList $@6 ')' . ';' DeclarationBody
+
+    ';'  shift, and go to state 178
+
+
+state 162
+
+   58 StructuredStatement: T_FOR T_ID $@16 T_ASSIGNMENT Expression . T_TO Expression T_DO Statement
+
+    T_TO  shift, and go to state 179
+
+
+state 163
+
+  103 FunctionReference: T_ID $@25 '(' ActualParameterList . ')'
+
+    ')'  shift, and go to state 180
+
+
+state 164
+
+   60 CloseIf: T_ELSE . Statement
+
+    T_BEGIN  shift, and go to state 35
+    T_FOR    shift, and go to state 50
+    T_IF     shift, and go to state 51
+    T_WHILE  shift, and go to state 52
+    T_ID     shift, and go to state 53
+
+    $default  reduce using rule 47 (SimpleStatement)
+
+    CompoundStatement    go to state 54
+    Statement            go to state 181
+    SimpleStatement      go to state 57
+    AssignmentStatement  go to state 58
+    ProcedureStatement   go to state 59
+    StructuredStatement  go to state 60
+    Variable             go to state 61
+
+
+state 165
+
+   55 StructuredStatement: T_IF Expression T_THEN Statement CloseIf .
+
+    $default  reduce using rule 55 (StructuredStatement)
+
+
+state 166
+
+   89 Summand: AddOp Term Summand .
+
+    $default  reduce using rule 89 (Summand)
+
+
+state 167
+
+  101 Multiplicand: MulOp Factor Multiplicand .
+
+    $default  reduce using rule 101 (Multiplicand)
+
+
+state 168
+
+  116 OptExpressions: ',' . Expression OptExpressions
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+    '+'    shift, and go to state 80
+    '-'    shift, and go to state 81
+
+    Expression         go to state 182
+    SimpleExpression   go to state 83
+    Term               go to state 84
+    Factor             go to state 85
+    FunctionReference  go to state 86
+    Variable           go to state 87
+    Sign               go to state 88
+
+
+state 169
+
+  114 ActualParameterList: Expression OptExpressions .
+
+    $default  reduce using rule 114 (ActualParameterList)
+
+
+state 170
+
+   53 ProcedureStatement: T_ID $@15 '(' ActualParameterList ')' .
+
+    $default  reduce using rule 53 (ProcedureStatement)
+
+
+state 171
+
+  109 ComponentSelection: '.' $@27 T_ID . $@28 ComponentSelection
+
+    $default  reduce using rule 108 ($@28)
+
+    $@28  go to state 183
+
+
+state 172
+
+  112 ComponentSelection: '[' $@29 Expression . ']' $@30 ComponentSelection
+
+    ']'  shift, and go to state 184
+
+
+state 173
+
+   69 Type: T_ARRAY '[' Constant $@18 T_RANGE Constant . $@19 ']' T_OF $@20 Type $@21
+
+    $default  reduce using rule 66 ($@19)
+
+    $@19  go to state 185
+
+
+state 174
+
+   76 FieldList: IdentifierList ':' Type $@24 . OptIdentifiers
+
+    ';'  shift, and go to state 186
+
+    $default  reduce using rule 37 (OptIdentifiers)
+
+    OptIdentifiers  go to state 187
+
+
+state 175
+
+   73 ResultType: T_ID .
+
+    $default  reduce using rule 73 (ResultType)
+
+
+state 176
+
+   29 FunctionDeclaration: T_FUNCTION T_ID $@7 '(' FormalParameterList ')' ':' ResultType . $@8 ';' DeclarationBody
+
+    $default  reduce using rule 28 ($@8)
+
+    $@8  go to state 188
+
+
+state 177
+
+   36 FormalParameterList: $@10 IdentifierList ':' Type . $@11 OptIdentifiers
+
+    $default  reduce using rule 35 ($@11)
+
+    $@11  go to state 189
+
+
+state 178
+
+   26 ProcedureDeclaration: T_PROCEDURE T_ID $@5 '(' FormalParameterList $@6 ')' ';' . DeclarationBody
+
+    T_FORWARD  shift, and go to state 190
+    T_VAR      shift, and go to state 12
+
+    $default  reduce using rule 40 ($@13)
+
+    VariableDeclarations  go to state 191
+    DeclarationBody       go to state 192
+    Block                 go to state 193
+    $@13                  go to state 194
+
+
+state 179
+
+   58 StructuredStatement: T_FOR T_ID $@16 T_ASSIGNMENT Expression T_TO . Expression T_DO Statement
+
+    T_NOT  shift, and go to state 75
+    T_ID   shift, and go to state 76
+    T_INT  shift, and go to state 77
+    T_STR  shift, and go to state 78
+    '('    shift, and go to state 79
+    '+'    shift, and go to state 80
+    '-'    shift, and go to state 81
+
+    Expression         go to state 195
+    SimpleExpression   go to state 83
+    Term               go to state 84
+    Factor             go to state 85
+    FunctionReference  go to state 86
+    Variable           go to state 87
+    Sign               go to state 88
+
+
+state 180
+
+  103 FunctionReference: T_ID $@25 '(' ActualParameterList ')' .
+
+    $default  reduce using rule 103 (FunctionReference)
+
+
+state 181
+
+   60 CloseIf: T_ELSE Statement .
+
+    $default  reduce using rule 60 (CloseIf)
+
+
+state 182
+
+  116 OptExpressions: ',' Expression . OptExpressions
+
+    ','  shift, and go to state 168
+
+    $default  reduce using rule 115 (OptExpressions)
+
+    OptExpressions  go to state 196
+
+
+state 183
+
+  109 ComponentSelection: '.' $@27 T_ID $@28 . ComponentSelection
+
+    '.'  shift, and go to state 128
+    '['  shift, and go to state 129
+
+    $default  reduce using rule 106 (ComponentSelection)
+
+    ComponentSelection  go to state 197
+
+
+state 184
+
+  112 ComponentSelection: '[' $@29 Expression ']' . $@30 ComponentSelection
+
+    $default  reduce using rule 111 ($@30)
+
+    $@30  go to state 198
+
+
+state 185
+
+   69 Type: T_ARRAY '[' Constant $@18 T_RANGE Constant $@19 . ']' T_OF $@20 Type $@21
+
+    ']'  shift, and go to state 199
+
+
+state 186
+
+   39 OptIdentifiers: ';' . IdentifierList ':' Type $@12 OptIdentifiers
+
+    T_ID  shift, and go to state 17
+
+    IdentifierList  go to state 200
+
+
+state 187
+
+   76 FieldList: IdentifierList ':' Type $@24 OptIdentifiers .
+
+    $default  reduce using rule 76 (FieldList)
+
+
+state 188
+
+   29 FunctionDeclaration: T_FUNCTION T_ID $@7 '(' FormalParameterList ')' ':' ResultType $@8 . ';' DeclarationBody
+
+    ';'  shift, and go to state 201
+
+
+state 189
+
+   36 FormalParameterList: $@10 IdentifierList ':' Type $@11 . OptIdentifiers
+
+    ';'  shift, and go to state 186
+
+    $default  reduce using rule 37 (OptIdentifiers)
+
+    OptIdentifiers  go to state 202
+
+
+state 190
+
+   31 DeclarationBody: T_FORWARD .
+
+    $default  reduce using rule 31 (DeclarationBody)
+
+
+state 191
+
+   42 Block: VariableDeclarations . CompoundStatement
+
+    T_BEGIN  shift, and go to state 35
+
+    CompoundStatement  go to state 203
+
+
+state 192
+
+   26 ProcedureDeclaration: T_PROCEDURE T_ID $@5 '(' FormalParameterList $@6 ')' ';' DeclarationBody .
+
+    $default  reduce using rule 26 (ProcedureDeclaration)
+
+
+state 193
+
+   30 DeclarationBody: Block .
+
+    $default  reduce using rule 30 (DeclarationBody)
+
+
+state 194
+
+   41 Block: $@13 . CompoundStatement
+
+    T_BEGIN  shift, and go to state 35
+
+    CompoundStatement  go to state 204
+
+
+state 195
+
+   58 StructuredStatement: T_FOR T_ID $@16 T_ASSIGNMENT Expression T_TO Expression . T_DO Statement
+
+    T_DO  shift, and go to state 205
+
+
+state 196
+
+  116 OptExpressions: ',' Expression OptExpressions .
+
+    $default  reduce using rule 116 (OptExpressions)
+
+
+state 197
+
+  109 ComponentSelection: '.' $@27 T_ID $@28 ComponentSelection .
+
+    $default  reduce using rule 109 (ComponentSelection)
+
+
+state 198
+
+  112 ComponentSelection: '[' $@29 Expression ']' $@30 . ComponentSelection
+
+    '.'  shift, and go to state 128
+    '['  shift, and go to state 129
+
+    $default  reduce using rule 106 (ComponentSelection)
+
+    ComponentSelection  go to state 206
+
+
+state 199
+
+   69 Type: T_ARRAY '[' Constant $@18 T_RANGE Constant $@19 ']' . T_OF $@20 Type $@21
+
+    T_OF  shift, and go to state 207
+
+
+state 200
+
+   39 OptIdentifiers: ';' IdentifierList . ':' Type $@12 OptIdentifiers
+
+    ':'  shift, and go to state 208
+
+
+state 201
+
+   29 FunctionDeclaration: T_FUNCTION T_ID $@7 '(' FormalParameterList ')' ':' ResultType $@8 ';' . DeclarationBody
+
+    T_FORWARD  shift, and go to state 190
+    T_VAR      shift, and go to state 12
+
+    $default  reduce using rule 40 ($@13)
+
+    VariableDeclarations  go to state 191
+    DeclarationBody       go to state 209
+    Block                 go to state 193
+    $@13                  go to state 194
+
+
+state 202
+
+   36 FormalParameterList: $@10 IdentifierList ':' Type $@11 OptIdentifiers .
+
+    $default  reduce using rule 36 (FormalParameterList)
+
+
+state 203
+
+   42 Block: VariableDeclarations CompoundStatement .
+
+    $default  reduce using rule 42 (Block)
+
+
+state 204
+
+   41 Block: $@13 CompoundStatement .
+
+    $default  reduce using rule 41 (Block)
+
+
+state 205
+
+   58 StructuredStatement: T_FOR T_ID $@16 T_ASSIGNMENT Expression T_TO Expression T_DO . Statement
+
+    T_BEGIN  shift, and go to state 35
+    T_FOR    shift, and go to state 50
+    T_IF     shift, and go to state 51
+    T_WHILE  shift, and go to state 52
+    T_ID     shift, and go to state 53
+
+    $default  reduce using rule 47 (SimpleStatement)
+
+    CompoundStatement    go to state 54
+    Statement            go to state 210
+    SimpleStatement      go to state 57
+    AssignmentStatement  go to state 58
+    ProcedureStatement   go to state 59
+    StructuredStatement  go to state 60
+    Variable             go to state 61
+
+
+state 206
+
+  112 ComponentSelection: '[' $@29 Expression ']' $@30 ComponentSelection .
+
+    $default  reduce using rule 112 (ComponentSelection)
+
+
+state 207
+
+   69 Type: T_ARRAY '[' Constant $@18 T_RANGE Constant $@19 ']' T_OF . $@20 Type $@21
+
+    $default  reduce using rule 67 ($@20)
+
+    $@20  go to state 211
+
+
+state 208
+
+   39 OptIdentifiers: ';' IdentifierList ':' . Type $@12 OptIdentifiers
+
+    T_ARRAY   shift, and go to state 38
+    T_RECORD  shift, and go to state 39
+    T_ID      shift, and go to state 40
+
+    Type  go to state 212
+
+
+state 209
+
+   29 FunctionDeclaration: T_FUNCTION T_ID $@7 '(' FormalParameterList ')' ':' ResultType $@8 ';' DeclarationBody .
+
+    $default  reduce using rule 29 (FunctionDeclaration)
+
+
+state 210
+
+   58 StructuredStatement: T_FOR T_ID $@16 T_ASSIGNMENT Expression T_TO Expression T_DO Statement .
+
+    $default  reduce using rule 58 (StructuredStatement)
+
+
+state 211
+
+   69 Type: T_ARRAY '[' Constant $@18 T_RANGE Constant $@19 ']' T_OF $@20 . Type $@21
+
+    T_ARRAY   shift, and go to state 38
+    T_RECORD  shift, and go to state 39
+    T_ID      shift, and go to state 40
+
+    Type  go to state 213
+
+
+state 212
+
+   39 OptIdentifiers: ';' IdentifierList ':' Type . $@12 OptIdentifiers
+
+    $default  reduce using rule 38 ($@12)
+
+    $@12  go to state 214
+
+
+state 213
+
+   69 Type: T_ARRAY '[' Constant $@18 T_RANGE Constant $@19 ']' T_OF $@20 Type . $@21
+
+    $default  reduce using rule 68 ($@21)
+
+    $@21  go to state 215
+
+
+state 214
+
+   39 OptIdentifiers: ';' IdentifierList ':' Type $@12 . OptIdentifiers
+
+    ';'  shift, and go to state 186
+
+    $default  reduce using rule 37 (OptIdentifiers)
+
+    OptIdentifiers  go to state 216
+
+
+state 215
+
+   69 Type: T_ARRAY '[' Constant $@18 T_RANGE Constant $@19 ']' T_OF $@20 Type $@21 .
+
+    $default  reduce using rule 69 (Type)
+
+
+state 216
+
+   39 OptIdentifiers: ';' IdentifierList ':' Type $@12 OptIdentifiers .
+
+    $default  reduce using rule 39 (OptIdentifiers)

@@ -1,0 +1,13 @@
+temp := z
+
+temp := m
+
+temp := a
+[]
+temp := a
+temp := temp.b
+temp := temp.cccc
+temp := temp.de
+
+temp := a
+
