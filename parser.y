@@ -45,7 +45,7 @@ typedef struct scope{
 } scope;
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
-bool temp_var;  //whether temp variables are used in tac
+bool temp_var, temp_exp;  //whether temporaries are used in tac for the variable/expression
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, current_const, current_l, current_u;  //l/u:  array lower/upper bounds
 std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, et, current_var, current_exp;  //tac output for current variable/expression
 id_attr current_id_attr;
@@ -61,7 +61,7 @@ inline std::string to_string (const T & t){
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
 std::string LookupTypeDef(const std::string), Temp(void), Temp(int), Temp_Eq(void), Temp_Eq(int);
-void print_label(const std::string s), print_tac(const std::string s), print_var(const std::string s);
+void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string);
 
 %}
 
@@ -293,15 +293,6 @@ AssignmentStatement
 Variable
 {
 	lhs_type = exp_type;
-	//HEREHERE
-/*
-	if (!temp_var){
-		tac<<" := ";
-	}else{
-		tac<<Temp_Eq();
-	}
-	TODO: DO THIS AFTER EXPRESSION HAS BEEN EVALUATED
-*/
 }
 T_ASSIGNMENT Expression
 {
@@ -314,7 +305,6 @@ T_ASSIGNMENT Expression
 	}else if (exp_type == ""){
 		yyerror("unable to determine the type of the right-hand side due to previous error(s)");
 	}
-	tac<<et<<"\n";  //et = "";
 	lhs_type = "";
 	exp_type = "";
 	tac<<current_exp<<current_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
@@ -468,8 +458,9 @@ T_RELOP
 SimpleExpression
 :
 {
+	temp_exp = false;
+	current_exp = "";
 	et = "";
-	temp_var = false;
 }
 Term Summand {rules<<"SimpleExpression\n";}
 |
@@ -499,23 +490,26 @@ AddOp
 :
 Sign
 {
-	if (!temp_var){
-		et.append(current_sgn == -1 ? " - " : " + ");
+	std::string temp;
+	if (!temp_exp){
+		print_exp(Temp_Eq(tmpc + 1).append(et).append(current_sgn == -1 ? " - " : " + "));
+		temp_exp = true;
 	}else{
-//		print_tac(et.append("\n"));  //HEREHERE
-		et = Temp_Eq().append(Temp()).append(current_sgn == -1 ? " - " : " + ");
+		print_exp(Temp_Eq(tmpc + 1).append(Temp()).append(current_sgn == -1 ? " - " : " + "));
 	}
+	et = Temp(++tmpc);
 	rules<<"AddOp\n";
 }
 |
 T_OR
 {
-	if (!temp_var){
-		et.append(" or ");
+	if (!temp_exp){
+		print_exp(Temp_Eq(tmpc + 1).append(et).append(" or "));
+		temp_exp = true;
 	}else{
-//		print_tac(et.append("\n"));  //HEREHERE
-		et = Temp_Eq().append(Temp()).append(" or ");
+		print_exp(Temp_Eq(tmpc + 1).append(Temp()).append(" or "));
 	}
+	et = Temp(++tmpc);
 	rules<<"AddOp\n";
 }
 ;
@@ -626,7 +620,7 @@ ComponentSelection
 '.'
 {
 	if (!temp_var){
-		print_var(Temp_Eq(tmpc + 1).append(vt).append("."));  //HEREHERE
+		print_var(Temp_Eq(tmpc + 1).append(vt).append("."));
 		temp_var = true;
 	}else{
 		print_var(Temp_Eq(tmpc + 1).append(Temp()).append("."));
@@ -793,6 +787,10 @@ void print_tac(const std::string s){
 
 void print_var(const std::string s){
 	current_var.append(std::string("\t", ind)).append(s);
+}
+
+void print_exp(const std::string s){
+	current_exp.append(std::string("\t", ind)).append(s);
 }
 
 int main(void){
