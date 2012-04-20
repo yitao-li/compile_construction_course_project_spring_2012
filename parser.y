@@ -45,8 +45,8 @@ typedef struct scope{
 } scope;
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
-bool temp_var, temp_exp;  //whether temporaries are used in tac for the variable/expression
-int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, current_const, current_l, current_u;  //l/u:  array lower/upper bounds
+bool temp_var;  //whether temporaries are used in tac for the variable/expression
+int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, current_const, current_l, current_u, temp_exp;  //l/u:  array lower/upper bounds
 std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, et, current_var, current_exp;  //tac output for current variable/expression
 id_attr current_id_attr;
 std::vector<std::string> current_argv;
@@ -444,13 +444,11 @@ RelationalOp
 :
 T_RELOP
 {
-	et.append(" ").append(std::string(yytext_ptr)).append(" ");
 	rules<<"RelationalOp\n";
 }
 |
 '='
 {
-	et.append(" = ");
 	rules<<"RelationalOp\n";
 }
 ;
@@ -458,7 +456,7 @@ T_RELOP
 SimpleExpression
 :
 {
-	temp_exp = false;
+	temp_exp = 1;  //at least 1 term exists on the right-hand side
 	current_exp = "";
 	et = "";
 }
@@ -466,7 +464,11 @@ Term Summand {rules<<"SimpleExpression\n";}
 |
 Sign
 {
-	et.append(current_sgn == -1 ? "-" : "+");
+	if (temp_exp < 2){
+		et.append(current_sgn == -1 ? "-" : "+");
+	}else{
+		current_exp.append(current_sgn == -1 ? "-" : "+");
+	}
 }
 Term Summand {rules<<"SimpleExpression\n";}
 ;
@@ -490,26 +492,31 @@ AddOp
 :
 Sign
 {
-	std::string temp;
-	if (!temp_exp){
-		print_exp(Temp_Eq(tmpc + 1).append(et).append(current_sgn == -1 ? " - " : " + "));
-		temp_exp = true;
+	if (temp_exp < 2){
+		et.append(current_sgn == -1 ? " - " : " + ");
 	}else{
+		if (temp_exp == 2){
+			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
+		}
 		print_exp(Temp_Eq(tmpc + 1).append(Temp()).append(current_sgn == -1 ? " - " : " + "));
+		et = Temp(++tmpc);
 	}
-	et = Temp(++tmpc);
+	++temp_exp;
 	rules<<"AddOp\n";
 }
 |
 T_OR
 {
-	if (!temp_exp){
-		print_exp(Temp_Eq(tmpc + 1).append(et).append(" or "));
-		temp_exp = true;
+	if (temp_exp < 2){
+		et.append(" or ");
 	}else{
+		if (temp_exp == 2){
+			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
+		}
 		print_exp(Temp_Eq(tmpc + 1).append(Temp()).append(" or "));
+		et = Temp(++tmpc);
 	}
-	et = Temp(++tmpc);
+	++temp_exp;
 	rules<<"AddOp\n";
 }
 ;
@@ -521,7 +528,11 @@ Factor Multiplicand {rules<<"Term\n";}
 
 Summand
 :
-/* empty */ {rules<<"Summand\n";}
+/* empty */
+{
+	current_exp.append("\n");
+	rules<<"Summand\n";
+}
 |
 AddOp Term Summand {rules<<"Summand\n";}
 ;
@@ -541,14 +552,17 @@ Factor
 :
 T_INT
 {
-	et.append(std::string(yytext_ptr));
+	if (temp_exp <= 2){
+		et.append(std::string(yytext_ptr));
+	}else{
+		current_exp.append(std::string(yytext_ptr));
+	}
 	exp_type = "integer";
 	rules<<"Factor\n";
 }
 |
 T_STR
 {
-	et.append(std::string(yytext_ptr));
 	exp_type = "string";
 	rules<<"Factor\n";
 }
