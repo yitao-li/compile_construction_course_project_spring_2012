@@ -29,5 +29,15 @@ cat rules.out
     3. The current version only checks for type mismatch in simple assignment operations (i.e. assignment in the form of "a := b") but does not check for
        type mismatch in assignment of the form "a := b + c" (since specific language-dependent rules are needed to determine the type of the right-hand side
        and the project would become too complicated if all those rules have to be included).
+
+	allocation of registers:
+
+	for arithematics:
+	
+	component selection
+
+	(eax, ebx) relop (ecx, edx)
+
+
        
 */

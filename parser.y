@@ -45,8 +45,8 @@ typedef struct scope{
 } scope;
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
-bool temp_var;  //whether temporaries are used in tac for the variable/expression
-int argc = 0, current_argc = 0, s_err = 0, ind = 0, current_sgn, current_const, current_l, current_u, temp_exp;  //l/u:  array lower/upper bounds
+bool temp_var;  //whether temporaries are used in tac for the variable/expression, edx maybe needed for mulop on expressions
+int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, current_const, current_l, current_u, temp_exp;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
 std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, et, current_var, current_exp, lhs_vt, lhs_var;  //tac output for current variable/expression
 id_attr current_id_attr;
 std::vector<std::string> current_argv;
@@ -60,8 +60,8 @@ inline std::string to_string (const T & t){
 }
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
-std::string LookupTypeDef(const std::string), Temp(void), Temp_Eq(void);
-void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_binop(const std::string), print_exp_text(const std::string), print_exp_text(void);
+std::string LookupTypeDef(const std::string), Temp(void), Temp(int), Temp_Eq(void), Temp_Eq(int);
+void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_addop(const std::string), print_exp_text(const std::string), print_exp_text(void);
 
 %}
 
@@ -312,6 +312,7 @@ T_ASSIGNMENT Expression
 	tac<<current_exp<<lhs_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
 	//print_tac("assignment statemet")
 	print_tac(lhs_vt.append(" := ").append(et).append("\n"));
+	et = "";
 	rules<<"AssignmentStatement\n";
 }
 ;
@@ -462,6 +463,7 @@ SimpleExpression
 	temp_exp = 1;  //at least 1 term exists on the right-hand side
 	current_exp = "";
 	et = "";
+	//use_edx = false;
 }
 Term Summand {rules<<"SimpleExpression\n";}
 |
@@ -474,6 +476,53 @@ Sign
 	}
 }
 Term Summand {rules<<"SimpleExpression\n";}
+;
+
+MulOp
+:
+T_MULOP
+{
+	rules<<"MulOp\n";
+}
+|
+T_DIV
+{
+	rules<<"MulOp\n";
+}
+|
+T_MOD
+{
+	rules<<"MulOp\n";
+}
+|
+T_AND
+{
+	rules<<"MulOp\n";
+}
+;
+
+Multiplicand
+:
+/* empty */
+{
+	rules<<"Multiplicand\n";
+}
+|
+MulOp
+{
+	//HEREHERE
+	print_addop(" * ");
+}
+Factor
+{
+	if (temp_exp > 2){
+		current_exp.append("\n");
+	}
+}
+Multiplicand
+{
+	rules<<"Multiplicand\n";
+}
 ;
 
 Sign
@@ -495,13 +544,13 @@ AddOp
 :
 Sign
 {
-	print_binop(current_sgn == -1 ? " - " : " + ");
+	print_addop(current_sgn == -1 ? " - " : " + ");
 	rules<<"AddOp\n";
 }
 |
 T_OR
 {
-	print_binop(" or ");
+	print_addop(" or ");
 	rules<<"AddOp\n";
 }
 ;
@@ -530,21 +579,6 @@ AddOp Term
 Summand {
 	rules<<"Summand\n";
 }
-;
-
-MulOp
-:
-T_MULOP
-{
-	print_exp_text(" * ");
-	rules<<"MulOp\n";
-}
-|
-T_DIV {rules<<"MulOp\n";}
-|
-T_MOD {rules<<"MulOp\n";}
-|
-T_AND {rules<<"MulOp\n";}
 ;
 
 Factor
@@ -583,25 +617,6 @@ T_NOT Factor
 }
 |
 '(' Expression ')' {rules<<"Factor\n";}
-;
-
-Multiplicand
-:
-/* empty */
-{
-	rules<<"Multiplicand\n";
-}
-|
-MulOp Factor
-{
-	if (temp_exp > 2){
-		current_exp.append("\n");
-	}
-}
-Multiplicand
-{
-	rules<<"Multiplicand\n";
-}
 ;
 
 FunctionReference
@@ -644,12 +659,12 @@ ComponentSelection
 '.'
 {
 	if (!temp_var){
-		print_var(Temp_Eq().append(vt).append("."));
+		print_var(Temp_Eq(tmpc + 1).append(vt).append("."));
 		temp_var = true;
 	}else{
-		print_var(Temp_Eq().append(Temp()).append("."));
+		print_var(Temp_Eq(tmpc + 1).append(Temp()).append("."));
 	}
-	vt = Temp();
+	vt = Temp(++tmpc);
 //	print_tac(Temp_Eq().append(Temp()).append("."));
 	//current_id = prev_id;
 }
@@ -785,12 +800,23 @@ std::string LookupTypeDef(const std::string type){
 }
 
 std::string Temp(void){
-	return std::string("temp");
+	return std::string("temp").append(to_string<int>(tmpc));
+}
+
+
+std::string Temp(int c){
+	return std::string("temp").append(to_string<int>(c));
 }
 
 std::string Temp_Eq(void){
-	return std::string("temp := ");
+	return std::string("temp").append(to_string<int>(tmpc)).append(" := ");
 }
+
+
+std::string Temp_Eq(int c){
+	return std::string("temp").append(to_string<int>(c)).append(" := ");
+}
+
 
 void print_label(const std::string s){
 	tac<<std::string("\t", ind)<<s<<":\n";
@@ -809,15 +835,15 @@ void print_exp(const std::string s){
 	current_exp.append(std::string("\t", ind)).append(s);
 }
 
-void print_binop(const std::string op){
+void print_addop(const std::string op){
 	if (temp_exp < 2){
 		et.append(op);
 	}else{
 		if (temp_exp == 2){
-			print_exp(Temp_Eq().append(et).append("\n"));
-			et = Temp();
+			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
 		}
-		print_exp(Temp_Eq().append(Temp()).append(op));
+		print_exp(Temp_Eq(tmpc + 1).append(Temp()).append(op));
+		et = Temp(++tmpc);
 	}
 	++temp_exp;
 }
