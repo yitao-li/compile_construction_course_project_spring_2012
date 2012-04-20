@@ -11,7 +11,6 @@ type
 	RR = record
 		a,b : integer;
 		c   : string
-		{r   : R     note: cannot be circular}
 	end;
 	R = record
 		a,b : RR;
@@ -24,8 +23,9 @@ var
 	m : in;
 	r : R;
 begin
+	m := 2 * 3 * 8;
 	z := "";
-	r.b.a := r.a.b;
+	r.b.a := 100 + 2 * 2 + 1 or 8;
 	m := 1 + r.b.a + 2;
 	{r.b.s := 100;   {no field with name 's'}
 end.
