@@ -61,7 +61,7 @@ inline std::string to_string (const T & t){
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
 std::string LookupTypeDef(const std::string), Temp(void), Temp_Eq(void);
-void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_addop(const std::string), print_exp_text(void);
+void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_binop(const std::string), print_exp_text(const std::string), print_exp_text(void);
 
 %}
 
@@ -495,37 +495,13 @@ AddOp
 :
 Sign
 {
-	print_addop(current_sgn == -1 ? " - " : " + ");
-	/*
-	if (temp_exp < 2){
-		et.append(current_sgn == -1 ? " - " : " + ");
-	}else{
-		if (temp_exp == 2){
-			print_exp(Temp_Eq().append(et).append("\n"));
-			et = Temp();
-		}
-		print_exp(Temp_Eq().append(Temp()).append(current_sgn == -1 ? " - " : " + "));
-	}
-	++temp_exp;
-	*/
+	print_binop(current_sgn == -1 ? " - " : " + ");
 	rules<<"AddOp\n";
 }
 |
 T_OR
 {
-	print_addop(" or ");
-	/*
-	if (temp_exp < 2){
-		et.append(" or ");
-	}else{
-		if (temp_exp == 2){
-			print_exp(Temp_Eq().append(et).append("\n"));
-			et = Temp();
-		}
-		print_exp(Temp_Eq().append(Temp()).append(" or "));
-	}
-	++temp_exp;
-	*/
+	print_binop(" or ");
 	rules<<"AddOp\n";
 }
 ;
@@ -560,7 +536,7 @@ MulOp
 :
 T_MULOP
 {
-	print_exp_text();
+	print_exp_text(" * ");
 	rules<<"MulOp\n";
 }
 |
@@ -611,9 +587,21 @@ T_NOT Factor
 
 Multiplicand
 :
-/* empty */ {rules<<"Multiplicand\n";}
+/* empty */
+{
+	rules<<"Multiplicand\n";
+}
 |
-MulOp Factor Multiplicand {rules<<"Multiplicand\n";}
+MulOp Factor
+{
+	if (temp_exp > 2){
+		current_exp.append("\n");
+	}
+}
+Multiplicand
+{
+	rules<<"Multiplicand\n";
+}
 ;
 
 FunctionReference
@@ -821,7 +809,7 @@ void print_exp(const std::string s){
 	current_exp.append(std::string("\t", ind)).append(s);
 }
 
-void print_addop(const std::string op){
+void print_binop(const std::string op){
 	if (temp_exp < 2){
 		et.append(op);
 	}else{
@@ -839,6 +827,14 @@ void print_exp_text(void){
 		et.append(std::string(yytext_ptr));
 	}else{
 		current_exp.append(std::string(yytext_ptr));
+	}
+}
+
+void print_exp_text(const std::string s){
+	if (temp_exp <= 2){
+		et.append(s);
+	}else{
+		current_exp.append(s);
 	}
 }
 
