@@ -169,13 +169,18 @@ T_PROCEDURE T_ID
 	current_id = std::string(yytext_ptr);
 	next_scope = new scope(current_scope);
 	print_label(std::string("procedure_").append(current_id));
+	++ind;
 }
 '(' FormalParameterList {
 	current_scope -> symt[std::string("procedure ").append(current_id)] = id_attr("void", current_scope -> symt.size());  //procedure returns type 'void'
 	current_id_attr.type = "";
 	current_id_attr.field_list.clear();
 	argc = 0;
-}')' ';' DeclarationBody {rules<<"ProcedureDeclaration\n"; print_tac("return"); --ind; tac<<"\n";}
+}')' ';' DeclarationBody
+{
+	--ind;
+	rules<<"ProcedureDeclaration\n"; print_tac("return"); --ind; tac<<"\n";
+}
 ;
 
 FunctionDeclaration
@@ -185,19 +190,25 @@ T_FUNCTION T_ID
 	current_ret = current_id = std::string(yytext_ptr);
 	next_scope = new scope(current_scope);
 	print_label(std::string("function_").append(current_id));
+	++ind
 } '(' FormalParameterList ')' ':' ResultType
 {
 	current_scope -> symt[std::string("function ").append(current_id)] = id_attr(exp_type, current_scope -> symt.size());
 	current_id_attr.type = "";
 	current_id_attr.field_list.clear();
 	argc = 0;
-}';' DeclarationBody {rules<<"FunctionDeclaration\n"; print_tac(std::string("funreturn ").append(current_ret).append("\t\t; should be \"mov eax, <result>\" in x86 assembly")); --ind; tac<<"\n";}
+}';' DeclarationBody
+{
+	--ind;
+	rules<<"FunctionDeclaration\n";
+}
 ;
 
 DeclarationBody
 :
 Block
 {
+	print_tac(std::string("funreturn ").append(current_ret).append("\t\t; should be \"mov eax, <result>\" in x86 assembly")); --ind; tac<<"\n";
 	rules<<"DeclarationBody\n";
 }
 |
@@ -282,12 +293,11 @@ AssignmentStatement
 Variable
 {
 	lhs_type = exp_type;
-	//lc = tmpc++;
+	//HEREHERE
 	if (!temp_var){
-		vt.append(" := ");
+		tac<<" := ";
 	}else{
-		//print_tac(vt);
-		print_tac(Temp_Eq());
+		tac<<Temp_Eq();
 	}
 }
 T_ASSIGNMENT Expression
@@ -301,8 +311,7 @@ T_ASSIGNMENT Expression
 	}else if (exp_type == ""){
 		yyerror("unable to determine the type of the right-hand side due to previous error(s)");
 	}
-//	print_tac(Temp(lc).append(" := ").append(Temp()).append("\n"));
-	print_tac("\n");
+	tac<<et<<"\n";  //et = "";
 	lhs_type = "";
 	exp_type = "";
 	rules<<"AssignmentStatement\n";
@@ -543,17 +552,8 @@ T_STR
 }
 |
 Variable{
-/*
 	if (!temp_var){
-		print_tac(vt.append(" := "));
-	}else{
-		print_tac(vt);
-		print_tac(Temp_Eq());
-	}
-*/
-	if (!temp_var){
-		std::cout<<"Variable == "<<vt<<std::endl;
-//		et = std::string(yytext_ptr);
+		//std::cout<<"Variable == "<<vt<<std::endl;
 	}else{
 		//HEREHERE
 	}
@@ -604,7 +604,6 @@ T_ID
 }
 ComponentSelection {
 	rules<<"Variable\n";
-	//print_tac("\n");
 }
 ;
 
