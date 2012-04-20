@@ -24,7 +24,7 @@ var
 	r : R;
 begin
 	z := "";
-	m := 7;
+	m := (1 + 2) * (3 + 4);
 	r.b.s := 100;   {no field with name 's'}
 	r.b.a := 100;
 end.

@@ -46,8 +46,8 @@ typedef struct scope{
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
 bool temp_var;  //whether temp variables are used in tac
-int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, current_const, current_l, current_u;
-std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt;  //tac output for current variable
+int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, current_const, current_l, current_u;  //l/u:  array lower/upper bounds
+std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, et;  //tac output for current variable/expression
 id_attr current_id_attr;
 std::vector<std::string> current_argv;
 std::fstream rules(RULES_OUTPUT, std::ios::out | std::ios::trunc), tac(TAC_OUTPUT, std::ios::out | std::ios::trunc);
@@ -284,9 +284,9 @@ Variable
 	lhs_type = exp_type;
 	//lc = tmpc++;
 	if (!temp_var){
-		print_tac(vt.append(" := "));
+		vt.append(" := ");
 	}else{
-		print_tac(vt);
+		//print_tac(vt);
 		print_tac(Temp_Eq());
 	}
 }
@@ -440,26 +440,28 @@ RelationalOp
 :
 T_RELOP
 {
-//	std::cout<<std::string(yytext_ptr)<<std::endl;
+	et.append(" ").append(std::string(yytext_ptr)).append(" ");
 	rules<<"RelationalOp\n";
 }
 |
 '='
 {
-	print_tac("=");
+	et.append(" = ");
 	rules<<"RelationalOp\n";
 }
 ;
 
 SimpleExpression
 :
+{
+	et = "";
+	temp_var = false;
+}
 Term Summand {rules<<"SimpleExpression\n";}
 |
 Sign
 {
-	if (current_sgn == -1){
-		print_tac("-");
-	}
+	et.append(current_sgn == -1 ? "-" : "+");
 }
 Term Summand {rules<<"SimpleExpression\n";}
 ;
@@ -468,22 +470,27 @@ Sign
 :
 '+'
 {
-	current_sgn = 1;
-//	print_tac(" + ");
+	current_sgn = 1;   /* note: different semantic actions needed, depending on whether sign appears in array index or in some expression */
 	rules<<"Sign\n";
 }
 |
 '-'
 {
 	current_sgn = -1;
-//	print_tac(" - ");
 	rules<<"Sign\n";
 }
 ;
 
 AddOp
 :
-Sign {rules<<"AddOp\n";}
+Sign {
+	if (!temp_var){
+		et.append(current_sgn == -1 ? " - " : " + ");
+	}else{
+		et.append(Temp_Eq()).append(Temp()).append(current_sgn == -1 ? " - " : " + ");
+	}
+	rules<<"AddOp\n";
+}
 |
 T_OR {rules<<"AddOp\n";}
 ;
@@ -515,17 +522,43 @@ Factor
 :
 T_INT
 {
+	if (!temp_var){
+		et = std::string(yytext_ptr);
+	}else{
+		et.append(std::string(yytext_ptr));
+	}
 	exp_type = "integer";
 	rules<<"Factor\n";
 }
 |
 T_STR
 {
+	if (!temp_var){
+		et = std::string(yytext_ptr);
+	}else{
+		et.append(std::string(yytext_ptr));
+	}
 	exp_type = "string";
 	rules<<"Factor\n";
 }
 |
-Variable {rules<<"Factor\n";}
+Variable{
+/*
+	if (!temp_var){
+		print_tac(vt.append(" := "));
+	}else{
+		print_tac(vt);
+		print_tac(Temp_Eq());
+	}
+*/
+	if (!temp_var){
+		std::cout<<"Variable == "<<vt<<std::endl;
+//		et = std::string(yytext_ptr);
+	}else{
+		//HEREHERE
+	}
+	rules<<"Factor\n";
+}
 |
 FunctionReference {rules<<"Factor\n";}
 |
@@ -568,7 +601,6 @@ T_ID
 		++s_err;
 	}
 	vt = prev_id;
-	//print_tac(Temp_Eq().append(prev_id).append("\n"));
 }
 ComponentSelection {
 	rules<<"Variable\n";
@@ -578,15 +610,19 @@ ComponentSelection {
 
 ComponentSelection
 :
-/* empty */ {rules<<"ComponentSelection\n";}
+/* empty */
+{
+	print_tac(vt);
+	rules<<"ComponentSelection\n";
+}
 |
 '.'
 {
 	if (!temp_var){
-		temp_var = true;
 		vt = Temp_Eq(tmpc + 1).append(vt.append("."));
+		temp_var = true;
 	}else{
-		vt.append(Temp_Eq(tmpc + 1)).append(Temp()).append(".");
+		vt = Temp_Eq(tmpc + 1).append(Temp()).append(".");
 	}
 //	print_tac(Temp_Eq().append(Temp()).append("."));
 	//current_id = prev_id;
@@ -608,9 +644,9 @@ T_ID
 			exp_type = ft -> second;
 		}
 	}
-	vt.append(prev_id).append("\n");
+	print_tac(vt.append(prev_id).append("\n"));
+	//vt = "";
 	++tmpc;
-	//print_tac(prev_id.append("\n"));
 }
 ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
 |
