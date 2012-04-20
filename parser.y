@@ -46,8 +46,8 @@ typedef struct scope{
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
 bool temp_var;  //whether temporaries are used in tac for the variable/expression
-int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, current_const, current_l, current_u, temp_exp;  //l/u:  array lower/upper bounds
-std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, et, current_var, current_exp;  //tac output for current variable/expression
+int argc = 0, current_argc = 0, s_err = 0, ind = 0, current_sgn, current_const, current_l, current_u, temp_exp;  //l/u:  array lower/upper bounds
+std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, et, current_var, current_exp, lhs_vt, lhs_var;  //tac output for current variable/expression
 id_attr current_id_attr;
 std::vector<std::string> current_argv;
 std::fstream rules(RULES_OUTPUT, std::ios::out | std::ios::trunc), tac(TAC_OUTPUT, std::ios::out | std::ios::trunc);
@@ -60,7 +60,7 @@ inline std::string to_string (const T & t){
 }
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
-std::string LookupTypeDef(const std::string), Temp(void), Temp(int), Temp_Eq(void), Temp_Eq(int);
+std::string LookupTypeDef(const std::string), Temp(void), Temp_Eq(void);
 void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string);
 
 %}
@@ -293,6 +293,8 @@ AssignmentStatement
 Variable
 {
 	lhs_type = exp_type;
+	lhs_var = current_var;
+	lhs_vt = vt;
 }
 T_ASSIGNMENT Expression
 {
@@ -307,11 +309,9 @@ T_ASSIGNMENT Expression
 	}
 	lhs_type = "";
 	exp_type = "";
-	if (current_exp == "\n"){
-		std::cout<<"EMPTY"<<std::endl;
-	}
-	tac<<current_exp<<current_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
-	print_tac(vt.append(" := ").append(et).append("\n"));
+	tac<<current_exp<<lhs_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
+	//print_tac("assignment statemet")
+	print_tac(lhs_vt.append(" := ").append(et).append("\n"));
 	rules<<"AssignmentStatement\n";
 }
 ;
@@ -499,10 +499,10 @@ Sign
 		et.append(current_sgn == -1 ? " - " : " + ");
 	}else{
 		if (temp_exp == 2){
-			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
+			print_exp(Temp_Eq().append(et).append("\n"));
+			et = Temp();
 		}
-		print_exp(Temp_Eq(tmpc + 1).append(Temp()).append(current_sgn == -1 ? " - " : " + "));
-		et = Temp(++tmpc);
+		print_exp(Temp_Eq().append(Temp()).append(current_sgn == -1 ? " - " : " + "));
 	}
 	++temp_exp;
 	rules<<"AddOp\n";
@@ -514,10 +514,10 @@ T_OR
 		et.append(" or ");
 	}else{
 		if (temp_exp == 2){
-			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
+			print_exp(Temp_Eq().append(et).append("\n"));
+			et = Temp();
 		}
-		print_exp(Temp_Eq(tmpc + 1).append(Temp()).append(" or "));
-		et = Temp(++tmpc);
+		print_exp(Temp_Eq().append(Temp()).append(" or "));
 	}
 	++temp_exp;
 	rules<<"AddOp\n";
@@ -600,10 +600,12 @@ T_STR
 }
 |
 Variable{
-	if (!temp_var){
-		//std::cout<<"Variable == "<<vt<<std::endl;
+
+	current_exp = current_var.append(current_exp);
+	if (temp_exp <= 2){
+		et.append(vt);
 	}else{
-		//HEREHERE
+		current_exp.append(vt);
 	}
 	rules<<"Factor\n";
 }
@@ -666,12 +668,12 @@ ComponentSelection
 '.'
 {
 	if (!temp_var){
-		print_var(Temp_Eq(tmpc + 1).append(vt).append("."));
+		print_var(Temp_Eq().append(vt).append("."));
 		temp_var = true;
 	}else{
-		print_var(Temp_Eq(tmpc + 1).append(Temp()).append("."));
+		print_var(Temp_Eq().append(Temp()).append("."));
 	}
-	vt = Temp(++tmpc);
+	vt = Temp();
 //	print_tac(Temp_Eq().append(Temp()).append("."));
 	//current_id = prev_id;
 }
@@ -807,19 +809,11 @@ std::string LookupTypeDef(const std::string type){
 }
 
 std::string Temp(void){
-	return std::string("temp").append(to_string<int>(tmpc));
-}
-
-std::string Temp(int c){
-	return std::string("temp").append(to_string<int>(c));
+	return std::string("temp");
 }
 
 std::string Temp_Eq(void){
-	return std::string("temp").append(to_string<int>(tmpc)).append(" := ");
-}
-
-std::string Temp_Eq(int c){
-	return std::string("temp").append(to_string<int>(c)).append(" := ");
+	return std::string("temp := ");
 }
 
 void print_label(const std::string s){

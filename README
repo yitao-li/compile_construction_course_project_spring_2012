@@ -13,7 +13,7 @@ make
 
 ** to examine output **
 
-cat symtable.out
+cat symtable.out (<-- this output is not used since each scope now has a symbol table)
 cat rules.out
 
 
@@ -21,12 +21,13 @@ cat rules.out
 
    note:
 
-    1. The current version does not complain about duplicate keys in the symbol table.
-       This should be changed in the near future (as part of error handling).
-       
-    2. Conflicts: 1 shift/reduce, 1 reduce/reduce
+    1. Conflicts: 1 shift/reduce, 1 reduce/reduce
 
-    3. The current symbol table does not have any name-mangling features (to be added
+    2. The current symbol table does not have any name-mangling features (to be added
        in the foreseeable future).
 
+    3. The current version only checks for type mismatch in simple assignment operations (i.e. assignment in the form of "a := b") but does not check for
+       type mismatch in assignment of the form "a := b + c" (since specific language-dependent rules are needed to determine the type of the right-hand side
+       and the project would become too complicated if all those rules have to be included).
+       
 */
