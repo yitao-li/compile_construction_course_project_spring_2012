@@ -307,6 +307,9 @@ T_ASSIGNMENT Expression
 	}
 	lhs_type = "";
 	exp_type = "";
+	if (current_exp == "\n"){
+		std::cout<<"EMPTY"<<std::endl;
+	}
 	tac<<current_exp<<current_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
 	print_tac(vt.append(" := ").append(et).append("\n"));
 	rules<<"AssignmentStatement\n";
@@ -523,18 +526,42 @@ T_OR
 
 Term
 :
-Factor Multiplicand {rules<<"Term\n";}
+Factor Multiplicand
+{
+	rules<<"Term\n";
+}
 ;
 
 Summand
 :
 /* empty */
 {
-	current_exp.append("\n");
+/*
+	if (temp_exp < 2){
+		et.append("\n");
+	}else{
+		current_exp.append("\n");
+	}
+*/
 	rules<<"Summand\n";
 }
 |
-AddOp Term Summand {rules<<"Summand\n";}
+AddOp Term
+{
+	if (temp_exp > 2){
+		current_exp.append("\n");
+	}
+}
+Summand {
+/*
+	if (temp_exp < 2){
+		et.append("\n");
+	}else{
+		current_exp.append("\n");
+	}
+*/
+	rules<<"Summand\n";
+}
 ;
 
 MulOp
@@ -563,6 +590,11 @@ T_INT
 |
 T_STR
 {
+	if (temp_exp <= 2){
+		et.append(std::string(yytext_ptr));
+	}else{
+		current_exp.append(std::string(yytext_ptr));
+	}
 	exp_type = "string";
 	rules<<"Factor\n";
 }
