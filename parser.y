@@ -47,7 +47,7 @@ typedef struct scope{
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
 bool temp_var;  //whether temp variables are used in tac
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, current_const, current_l, current_u;  //l/u:  array lower/upper bounds
-std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, et;  //tac output for current variable/expression
+std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, et, current_var, current_exp;  //tac output for current variable/expression
 id_attr current_id_attr;
 std::vector<std::string> current_argv;
 std::fstream rules(RULES_OUTPUT, std::ios::out | std::ios::trunc), tac(TAC_OUTPUT, std::ios::out | std::ios::trunc);
@@ -61,7 +61,7 @@ inline std::string to_string (const T & t){
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
 std::string LookupTypeDef(const std::string), Temp(void), Temp(int), Temp_Eq(void), Temp_Eq(int);
-void print_label(const std::string s), print_tac(const std::string s);
+void print_label(const std::string s), print_tac(const std::string s), print_var(const std::string s);
 
 %}
 
@@ -294,11 +294,14 @@ Variable
 {
 	lhs_type = exp_type;
 	//HEREHERE
+/*
 	if (!temp_var){
 		tac<<" := ";
 	}else{
 		tac<<Temp_Eq();
 	}
+	TODO: DO THIS AFTER EXPRESSION HAS BEEN EVALUATED
+*/
 }
 T_ASSIGNMENT Expression
 {
@@ -314,6 +317,8 @@ T_ASSIGNMENT Expression
 	tac<<et<<"\n";  //et = "";
 	lhs_type = "";
 	exp_type = "";
+	tac<<current_exp<<current_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
+	print_tac(vt.append(" := ").append(et).append("\n"));
 	rules<<"AssignmentStatement\n";
 }
 ;
@@ -492,16 +497,27 @@ Sign
 
 AddOp
 :
-Sign {
+Sign
+{
 	if (!temp_var){
 		et.append(current_sgn == -1 ? " - " : " + ");
 	}else{
-		et.append(Temp_Eq()).append(Temp()).append(current_sgn == -1 ? " - " : " + ");
+//		print_tac(et.append("\n"));  //HEREHERE
+		et = Temp_Eq().append(Temp()).append(current_sgn == -1 ? " - " : " + ");
 	}
 	rules<<"AddOp\n";
 }
 |
-T_OR {rules<<"AddOp\n";}
+T_OR
+{
+	if (!temp_var){
+		et.append(" or ");
+	}else{
+//		print_tac(et.append("\n"));  //HEREHERE
+		et = Temp_Eq().append(Temp()).append(" or ");
+	}
+	rules<<"AddOp\n";
+}
 ;
 
 Term
@@ -531,22 +547,14 @@ Factor
 :
 T_INT
 {
-	if (!temp_var){
-		et = std::string(yytext_ptr);
-	}else{
-		et.append(std::string(yytext_ptr));
-	}
+	et.append(std::string(yytext_ptr));
 	exp_type = "integer";
 	rules<<"Factor\n";
 }
 |
 T_STR
 {
-	if (!temp_var){
-		et = std::string(yytext_ptr);
-	}else{
-		et.append(std::string(yytext_ptr));
-	}
+	et.append(std::string(yytext_ptr));
 	exp_type = "string";
 	rules<<"Factor\n";
 }
@@ -600,6 +608,7 @@ T_ID
 		yyerror(std::string("variable '").append(prev_id).append("' is not declared").c_str());
 		++s_err;
 	}
+	current_var = "";
 	vt = prev_id;
 }
 ComponentSelection {
@@ -611,18 +620,18 @@ ComponentSelection
 :
 /* empty */
 {
-	print_tac(vt);
 	rules<<"ComponentSelection\n";
 }
 |
 '.'
 {
 	if (!temp_var){
-		vt = Temp_Eq(tmpc + 1).append(vt.append("."));
+		print_var(Temp_Eq(tmpc + 1).append(vt).append("."));  //HEREHERE
 		temp_var = true;
 	}else{
-		vt = Temp_Eq(tmpc + 1).append(Temp()).append(".");
+		print_var(Temp_Eq(tmpc + 1).append(Temp()).append("."));
 	}
+	vt = Temp(++tmpc);
 //	print_tac(Temp_Eq().append(Temp()).append("."));
 	//current_id = prev_id;
 }
@@ -643,9 +652,8 @@ T_ID
 			exp_type = ft -> second;
 		}
 	}
-	print_tac(vt.append(prev_id).append("\n"));
-	//vt = "";
-	++tmpc;
+	current_var.append(prev_id).append("\n");
+	//++tmpc;
 }
 ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
 |
@@ -781,6 +789,10 @@ void print_label(const std::string s){
 
 void print_tac(const std::string s){
 	tac<<std::string("\t", ind)<<s;
+}
+
+void print_var(const std::string s){
+	current_var.append(std::string("\t", ind)).append(s);
 }
 
 int main(void){
