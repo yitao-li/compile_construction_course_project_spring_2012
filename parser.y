@@ -61,7 +61,7 @@ inline std::string to_string (const T & t){
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
 std::string LookupTypeDef(const std::string), Temp(void), Temp_Eq(void);
-void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string);
+void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_addop(const std::string), print_exp_text(void);
 
 %}
 
@@ -495,6 +495,8 @@ AddOp
 :
 Sign
 {
+	print_addop(current_sgn == -1 ? " - " : " + ");
+	/*
 	if (temp_exp < 2){
 		et.append(current_sgn == -1 ? " - " : " + ");
 	}else{
@@ -505,11 +507,14 @@ Sign
 		print_exp(Temp_Eq().append(Temp()).append(current_sgn == -1 ? " - " : " + "));
 	}
 	++temp_exp;
+	*/
 	rules<<"AddOp\n";
 }
 |
 T_OR
 {
+	print_addop(" or ");
+	/*
 	if (temp_exp < 2){
 		et.append(" or ");
 	}else{
@@ -520,6 +525,7 @@ T_OR
 		print_exp(Temp_Eq().append(Temp()).append(" or "));
 	}
 	++temp_exp;
+	*/
 	rules<<"AddOp\n";
 }
 ;
@@ -536,13 +542,6 @@ Summand
 :
 /* empty */
 {
-/*
-	if (temp_exp < 2){
-		et.append("\n");
-	}else{
-		current_exp.append("\n");
-	}
-*/
 	rules<<"Summand\n";
 }
 |
@@ -553,20 +552,17 @@ AddOp Term
 	}
 }
 Summand {
-/*
-	if (temp_exp < 2){
-		et.append("\n");
-	}else{
-		current_exp.append("\n");
-	}
-*/
 	rules<<"Summand\n";
 }
 ;
 
 MulOp
 :
-T_MULOP {rules<<"MulOp\n";}
+T_MULOP
+{
+	print_exp_text();
+	rules<<"MulOp\n";
+}
 |
 T_DIV {rules<<"MulOp\n";}
 |
@@ -579,22 +575,14 @@ Factor
 :
 T_INT
 {
-	if (temp_exp <= 2){
-		et.append(std::string(yytext_ptr));
-	}else{
-		current_exp.append(std::string(yytext_ptr));
-	}
+	print_exp_text();
 	exp_type = "integer";
 	rules<<"Factor\n";
 }
 |
 T_STR
 {
-	if (temp_exp <= 2){
-		et.append(std::string(yytext_ptr));
-	}else{
-		current_exp.append(std::string(yytext_ptr));
-	}
+	print_exp_text();
 	exp_type = "string";
 	rules<<"Factor\n";
 }
@@ -831,6 +819,27 @@ void print_var(const std::string s){
 
 void print_exp(const std::string s){
 	current_exp.append(std::string("\t", ind)).append(s);
+}
+
+void print_addop(const std::string op){
+	if (temp_exp < 2){
+		et.append(op);
+	}else{
+		if (temp_exp == 2){
+			print_exp(Temp_Eq().append(et).append("\n"));
+			et = Temp();
+		}
+		print_exp(Temp_Eq().append(Temp()).append(op));
+	}
+	++temp_exp;
+}
+
+void print_exp_text(void){
+	if (temp_exp <= 2){
+		et.append(std::string(yytext_ptr));
+	}else{
+		current_exp.append(std::string(yytext_ptr));
+	}
 }
 
 int main(void){
