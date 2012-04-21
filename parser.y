@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <map>   //data structure for symbol table
 #include <vector>
+#include <stack>
 #include <string>
 #include "lex.h"
 
@@ -45,9 +46,11 @@ typedef struct scope{
 } scope;
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
-bool temp_var;  //whether temporaries are used in tac for the variable/expression, edx maybe needed for mulop on expressions
-int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, current_const, current_l, current_u, temp_exp, temp_m_exp;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
-std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, current_relop;  //tac output for current variable/expression
+bool temp_var;  //n_op: number of operators found in current expression <-- note: n_op is computed recursively
+int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, current_const, current_l, current_u, temp_exp, temp_m_exp, n_op;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
+std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop;  //tac output for current variable/expression
+std::stack<std::string> current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
+std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, n_op_save;
 id_attr current_id_attr;
 std::vector<std::string> current_argv;
 std::fstream rules(RULES_OUTPUT, std::ios::out | std::ios::trunc), tac(TAC_OUTPUT, std::ios::out | std::ios::trunc);
@@ -61,7 +64,7 @@ inline std::string to_string (const T & t){
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
 std::string LookupTypeDef(const std::string), Temp(void), Temp(int), Temp_Eq(void), Temp_Eq(int);
-void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string);
+void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string), save_state(bool), recover_state(bool);
 
 /*, print_m_exp_text(const std::string), print_exp_text(void), print_m_exp_text(void)*/
 
@@ -313,7 +316,8 @@ T_ASSIGNMENT Expression
 	exp_type = "";
 	tac<<current_exp<<lhs_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
 	//print_tac("assignment statemet")
-	print_tac(lhs_vt.append(" := ").append(et).append("\n"));  //et = "";
+	print_tac(lhs_vt.append(" := ").append(et).append("\n"));
+	et = "";
 	rules<<"AssignmentStatement\n";
 }
 ;
@@ -475,14 +479,17 @@ SimpleExpression
 :
 {
 	temp_exp = 1;  //at least 1 term exists on the right-hand side
+	n_op = 0;
 	current_exp = "";
-	current_m_exps = "";  //HEREHERE
+	current_m_exps = "";
 	et = "";
 	//use_edx = false;
 }
 Term Summand
 {
+std::cout<<"LINE 490"<<std::endl;
 	current_exp = current_m_exps.append(current_exp);
+std::cout<<"\ncurrent_exp == \n"<<current_exp<<std::endl;
 	rules<<"SimpleExpression\n";
 }
 |
@@ -496,6 +503,7 @@ Sign
 }
 Term Summand
 {
+std::cout<<"LINE 505"<<std::endl;
 	current_exp = current_m_exps.append(current_exp);
 	rules<<"SimpleExpression\n";
 }
@@ -653,7 +661,8 @@ T_STR
 |
 Variable{
 
-	current_exp = current_var.append(current_exp);
+	//current_exp = current_var.append(current_exp);
+	current_m_exps.append(current_var);
 	current_factor = vt;
 	rules<<"Factor\n";
 }
@@ -666,7 +675,55 @@ T_NOT Factor
 	rules<<"Factor\n";
 }
 |
-'(' Expression ')' {rules<<"Factor\n";}
+'('
+{
+	save_state(false);
+
+/* not sure if necessary */
+
+	temp_exp = 1;  //at least 1 term exists on the right-hand side
+	current_exp = "";
+	current_m_exps = "";
+	et = "";
+
+}
+Expression
+{
+//TODO: RECOVER CURRENT_M_EXPS AS WELL IN SAVE / RECOVERY
+	exp_type = "";
+//	current_m_exps.append(current_exp);
+	//std::cout<<"\ncurrent_exp == \n"<<current_exp;
+	//std::cout<<"\net == \n"<<et;
+	
+	//HEREHER
+	
+	if (n_op == 0){  //constant or single variable
+		std::cout<<"current_exp == \n"<<current_exp<<std::endl;
+		current_factor = et;
+		//std::cout<<"SINGLETON\n"<<std::endl;
+	}else if (temp_exp == 2){  //only 1 operator in current expression
+std::cout<<"LINE 705:\n"<<"\tet == \n"<<et<<std::endl;
+		//std::cout<<"1 operator found:\net == "<<et<<std::endl;
+		current_exp.append(Temp_Eq(++tmpc)).append(et).append("\n");
+		//std::cout<<"current_exp == \n"<<current_exp<<std::endl;
+		current_factor = Temp();
+		
+	}else{     //extra temporaries required
+		//current_m_exps.append(current_exp);
+		std::cout<<"n_op == "<<n_op<<"\ncurrent_exp == \n"<<current_exp<<std::endl;
+		//std::cout<<"temp_exp > 2\ncurrent_m_exps ==\n"<<current_m_exps<<std::endl;
+		current_factor = et;
+	}
+	tmp_exp = current_exp;
+//	et = "";
+}')'
+{
+	recover_state(false);
+	current_m_exps.append(tmp_exp);
+//	std::cout<<"cf == "<<current_factor<<std::endl;
+std::cout<<"LINE 724:\n"<<"current_m_exps == \n"<<current_m_exps<<std::endl;
+	rules<<"Factor\n";
+}
 ;
 
 FunctionReference
@@ -887,7 +944,9 @@ void print_m_exp(const std::string s){
 }
 
 void print_addop(const std::string op){
+std::cout<<"LINE 945"<<std::endl;
 	if (temp_exp < 2){
+std::cout<<"LINE 947"<<std::endl;
 		et.append(op);
 	}else{
 		if (temp_exp == 2){
@@ -896,6 +955,7 @@ void print_addop(const std::string op){
 		print_exp(Temp_Eq(tmpc + 1).append(Temp()).append(op));
 		et = Temp(++tmpc);
 	}
+	++n_op;
 	++temp_exp;
 }
 
@@ -909,6 +969,7 @@ void print_mulop(const std::string op){
 		print_m_exp(Temp_Eq(tmpc + 1).append(Temp()).append(op));
 		m_et = Temp(++tmpc);
 	}
+	++n_op;
 	++temp_m_exp;
 }
 
@@ -927,6 +988,88 @@ void print_exp_text(const std::string s){
 	}else{
 		current_exp.append(s);
 	}
+}
+
+void save_state(bool save_current_factor){
+	current_id_save.push(current_id);
+	current_ret_save.push(current_ret);
+	type_save.push(type);
+	current_typename_save.push(current_typename);
+	exp_type_save.push(exp_type);
+	lhs_type_save.push(lhs_type);
+	ret_type_save.push(ret_type);
+	vt_save.push(vt);
+	current_var_save.push(current_var);
+	lhs_vt_save.push(lhs_vt);
+	lhs_var_save.push(lhs_var);
+	if (save_current_factor){
+		current_factor_save.push(current_factor);
+	}
+	et_save.push(et);
+	_et_save.push(_et);
+	m_et_save.push(m_et);
+	current_exp_save.push(current_exp);
+	_current_exp_save.push(_current_exp);
+	current_m_exp_save.push(current_m_exp);
+	current_m_exps_save.push(current_m_exps);
+	current_relop_save.push(current_relop);
+	current_sgn_save.push(current_sgn);
+	temp_exp_save.push(temp_exp);
+	temp_m_exp_save.push(temp_m_exp);
+	n_op_save.push(n_op);
+}
+
+void recover_state(bool recover_current_factor){
+	current_id = current_id_save.top();
+	current_id_save.pop();
+	current_ret = current_ret_save.top();
+	current_ret_save.pop();
+	type = type_save.top();
+	type_save.pop();
+	current_typename = current_typename_save.top();
+	current_typename_save.pop();
+	exp_type = exp_type_save.top();
+	exp_type_save.pop();
+	lhs_type = lhs_type_save.top();
+	lhs_type_save.pop();
+	ret_type = ret_type_save.top();
+	ret_type_save.pop();
+	vt = vt_save.top();
+	vt_save.pop();
+	current_var = current_var_save.top();
+	current_var_save.pop();
+	lhs_vt = lhs_vt_save.top();
+	lhs_vt_save.pop();
+	lhs_var = lhs_var_save.top();
+	lhs_var_save.pop();
+	if (recover_current_factor){
+		current_factor = current_factor_save.top();
+		current_factor_save.pop();
+	}
+	et = et_save.top();
+	et_save.pop();
+	_et = _et_save.top();
+	_et_save.pop();
+	m_et = m_et_save.top();
+	m_et_save.pop();
+	current_exp = current_exp_save.top();
+	current_exp_save.pop();
+	_current_exp = _current_exp_save.top();
+	_current_exp_save.pop();
+	current_m_exp = current_m_exp_save.top();
+	current_m_exp_save.pop();
+	current_m_exps = current_m_exps_save.top();
+	current_m_exps_save.pop();
+	current_relop = current_relop_save.top();
+	current_relop_save.pop();
+	current_sgn = current_sgn_save.top();
+	current_sgn_save.pop();
+	temp_exp = temp_exp_save.top();
+	temp_exp_save.pop();
+	temp_m_exp = temp_m_exp_save.top();
+	temp_m_exp_save.pop();
+	n_op = n_op_save.top() + n_op;   //note: n_op is the total number of operations found in the entire expression
+	n_op_save.pop();
 }
 /*
 void print_m_exp_text(void){
