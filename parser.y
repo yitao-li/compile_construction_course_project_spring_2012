@@ -47,7 +47,7 @@ typedef struct scope{
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
 bool temp_var;  //whether temporaries are used in tac for the variable/expression, edx maybe needed for mulop on expressions
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, current_const, current_l, current_u, temp_exp, temp_m_exp;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
-std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, current_var, current_factor, et, m_et, current_exp, current_m_exp, lhs_vt, lhs_var;  //tac output for current variable/expression
+std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, current_relop;  //tac output for current variable/expression
 id_attr current_id_attr;
 std::vector<std::string> current_argv;
 std::fstream rules(RULES_OUTPUT, std::ios::out | std::ios::trunc), tac(TAC_OUTPUT, std::ios::out | std::ios::trunc);
@@ -313,8 +313,7 @@ T_ASSIGNMENT Expression
 	exp_type = "";
 	tac<<current_exp<<lhs_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
 	//print_tac("assignment statemet")
-	print_tac(lhs_vt.append(" := ").append(et).append("\n"));
-	et = "";
+	print_tac(lhs_vt.append(" := ").append(et).append("\n"));  //et = "";
 	rules<<"AssignmentStatement\n";
 }
 ;
@@ -439,8 +438,17 @@ SimpleExpression
 	rules<<"Expression\n";
 }
 |
-SimpleExpression RelationalOp SimpleExpression
+SimpleExpression
 {
+	_et = et;
+	_current_exp = current_exp; //et = "";
+}
+RelationalOp
+SimpleExpression
+{
+	current_exp = _current_exp.append(current_exp);
+	et = _et.append(" ").append(current_relop).append(" ").append(et);
+	temp_exp = 2;
 	exp_type = "boolean";
 	rules<<"Expression\n";
 }
@@ -450,11 +458,15 @@ RelationalOp
 :
 T_RELOP
 {
+	current_relop = std::string(yytext_ptr);
+//std::cout<<"\ncurrent_relop == "<<current_relop<<"\n";
 	rules<<"RelationalOp\n";
 }
 |
 '='
 {
+	current_relop = "=";
+//std::cout<<"\ncurrent_relop == "<<current_relop<<"\n";
 	rules<<"RelationalOp\n";
 }
 ;
@@ -464,10 +476,15 @@ SimpleExpression
 {
 	temp_exp = 1;  //at least 1 term exists on the right-hand side
 	current_exp = "";
+	current_m_exps = "";  //HEREHERE
 	et = "";
 	//use_edx = false;
 }
-Term Summand {rules<<"SimpleExpression\n";}
+Term Summand
+{
+	current_exp = current_m_exps.append(current_exp);
+	rules<<"SimpleExpression\n";
+}
 |
 Sign
 {
@@ -477,7 +494,11 @@ Sign
 		current_exp.append(current_sgn == -1 ? "-" : "+");
 	}
 }
-Term Summand {rules<<"SimpleExpression\n";}
+Term Summand
+{
+	current_exp = current_m_exps.append(current_exp);
+	rules<<"SimpleExpression\n";
+}
 ;
 
 MulOp
@@ -517,11 +538,14 @@ Multiplicand
 		if (temp_exp == 1){
 			print_exp_text(m_et);   //e.g. c := a * b; no temporary required
 		}else{
-			current_exp = current_m_exp.append(Temp_Eq(++tmpc)).append(m_et).append("\n").append(current_exp); //e.g. c := a * b; requiring 1 temporary
+			/* note: should not reverse the order of evaluation of the multiplicands */
+			//current_exp = current_m_exp.append(Temp_Eq(++tmpc)).append(m_et).append("\n").append(current_exp);
+			current_m_exps.append(current_m_exp.append(Temp_Eq(++tmpc)).append(m_et).append("\n"));  //e.g. c := a * b; requiring 1 temporary
 			print_exp_text(Temp());
 		}
 	}else{
-		current_exp = current_m_exp.append(current_exp);
+		//current_exp = current_m_exp.append(current_exp);
+		current_m_exps.append(current_m_exp);
 		print_exp_text(m_et);
 	}
 	current_factor = "";
@@ -539,7 +563,6 @@ Factor
 	}else{
 		current_m_exp.append(current_factor).append("\n");
 	}
-//std::cout<<"\ncurrent_m_exp:\n"<<current_m_exp<<"\n\n";
 	current_factor = "";
 }
 Multiplicand
@@ -616,7 +639,6 @@ T_INT
 {
 	//print_exp_text();
 	current_factor = std::string(yytext_ptr);
-//std::cout<<"current_factor == "<<current_factor<<std::endl;
 	exp_type = "integer";
 	rules<<"Factor\n";
 }
@@ -625,7 +647,6 @@ T_STR
 {
 	//print_exp_text();
 	current_factor = std::string(yytext_ptr);
-//std::cout<<"current_factor == "<<current_factor<<std::endl;
 	exp_type = "string";
 	rules<<"Factor\n";
 }
@@ -633,15 +654,7 @@ T_STR
 Variable{
 
 	current_exp = current_var.append(current_exp);
-/*
-	if (temp_exp <= 2){
-		et.append(vt);
-	}else{
-		current_exp.append(vt);
-	}
-*/
 	current_factor = vt;
-//std::cout<<"current_factor == "<<current_factor<<std::endl;
 	rules<<"Factor\n";
 }
 |
@@ -702,8 +715,6 @@ ComponentSelection
 		print_var(Temp_Eq(tmpc + 1).append(Temp()).append("."));
 	}
 	vt = Temp(++tmpc);
-//	print_tac(Temp_Eq().append(Temp()).append("."));
-	//current_id = prev_id;
 }
 T_ID
 {
@@ -723,7 +734,6 @@ T_ID
 		}
 	}
 	current_var.append(prev_id).append("\n");
-	//++tmpc;
 }
 ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
 |
