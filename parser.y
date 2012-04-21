@@ -1,6 +1,6 @@
 /* BISON TOKEN NAMES */
 
-%token T_AND T_BEGIN T_FORWARD T_DIV T_DO T_ELSE T_END T_FOR T_FUNCTION T_IF T_ARRAY T_MOD T_NOT T_OF T_OR T_PROCEDURE T_PROGRAM T_RECORD T_THEN T_TO T_TYPE T_VAR T_WHILE T_ID T_INT T_STR T_ASSIGNMENT T_RANGE T_RELOP T_MULOP
+%token T_AND T_BEGIN T_FORWARD T_DIV T_DO T_ELSE T_END T_FOR T_FUNCTION T_IF T_ARRAY T_MOD T_NOT T_OF T_OR T_PROCEDURE T_PROGRAM T_RECORD T_THEN T_TO T_TYPE T_VAR T_WHILE T_ID T_INT T_STR T_ASSIGNMENT T_RANGE T_RELOP T_MUL
 
 %{
 
@@ -46,8 +46,8 @@ typedef struct scope{
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
 bool temp_var;  //whether temporaries are used in tac for the variable/expression, edx maybe needed for mulop on expressions
-int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, current_const, current_l, current_u, temp_exp;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
-std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, et, current_var, current_exp, lhs_vt, lhs_var;  //tac output for current variable/expression
+int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, current_const, current_l, current_u, temp_exp, temp_m_exp;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
+std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, current_var, current_factor, et, m_et, current_exp, current_m_exp, lhs_vt, lhs_var;  //tac output for current variable/expression
 id_attr current_id_attr;
 std::vector<std::string> current_argv;
 std::fstream rules(RULES_OUTPUT, std::ios::out | std::ios::trunc), tac(TAC_OUTPUT, std::ios::out | std::ios::trunc);
@@ -61,7 +61,9 @@ inline std::string to_string (const T & t){
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
 std::string LookupTypeDef(const std::string), Temp(void), Temp(int), Temp_Eq(void), Temp_Eq(int);
-void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_addop(const std::string), print_exp_text(const std::string), print_exp_text(void);
+void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string);
+
+/*, print_m_exp_text(const std::string), print_exp_text(void), print_m_exp_text(void)*/
 
 %}
 
@@ -480,23 +482,27 @@ Term Summand {rules<<"SimpleExpression\n";}
 
 MulOp
 :
-T_MULOP
+T_MUL
 {
+	print_mulop(" * ");
 	rules<<"MulOp\n";
 }
 |
 T_DIV
 {
+	print_mulop(" / ");
 	rules<<"MulOp\n";
 }
 |
 T_MOD
 {
+	print_mulop(" mod ");
 	rules<<"MulOp\n";
 }
 |
 T_AND
 {
+	print_mulop(" and ");
 	rules<<"MulOp\n";
 }
 ;
@@ -505,19 +511,36 @@ Multiplicand
 :
 /* empty */
 {
+	if (temp_m_exp == 1){
+		print_exp_text(current_factor);    //no multiplication required, print directly as part of the summand
+	}else if (temp_m_exp == 2){
+		if (temp_exp == 1){
+			print_exp_text(current_m_exp);   //e.g. c := a * b; no temporary required
+		}else{
+			current_exp = current_m_exp.append(Temp_Eq(++tmpc)).append(m_et).append("\n").append(current_exp); //e.g. c := a * b; requiring 1 temporary
+			print_exp_text(Temp());
+		}
+	}else{
+		current_exp = current_m_exp.append(current_exp);
+		print_exp_text(m_et);
+	}
+	current_factor = "";
 	rules<<"Multiplicand\n";
 }
 |
 MulOp
 {
-	//HEREHERE
-	print_addop(" * ");
+
 }
 Factor
 {
-	if (temp_exp > 2){
-		current_exp.append("\n");
+	if (temp_m_exp <= 2){
+		m_et.append(current_factor);
+	}else{
+		current_m_exp.append(current_factor).append("\n");
 	}
+//std::cout<<"\ncurrent_m_exp:\n"<<current_m_exp<<"\n\n";
+	current_factor = "";
 }
 Multiplicand
 {
@@ -557,7 +580,13 @@ T_OR
 
 Term
 :
-Factor Multiplicand
+Factor
+{
+	temp_m_exp = 1;
+	m_et = current_factor;
+	current_m_exp = "";
+}
+Multiplicand
 {
 	rules<<"Term\n";
 }
@@ -585,14 +614,18 @@ Factor
 :
 T_INT
 {
-	print_exp_text();
+	//print_exp_text();
+	current_factor = std::string(yytext_ptr);
+//std::cout<<"current_factor == "<<current_factor<<std::endl;
 	exp_type = "integer";
 	rules<<"Factor\n";
 }
 |
 T_STR
 {
-	print_exp_text();
+	//print_exp_text();
+	current_factor = std::string(yytext_ptr);
+//std::cout<<"current_factor == "<<current_factor<<std::endl;
 	exp_type = "string";
 	rules<<"Factor\n";
 }
@@ -600,11 +633,15 @@ T_STR
 Variable{
 
 	current_exp = current_var.append(current_exp);
+/*
 	if (temp_exp <= 2){
 		et.append(vt);
 	}else{
 		current_exp.append(vt);
 	}
+*/
+	current_factor = vt;
+//std::cout<<"current_factor == "<<current_factor<<std::endl;
 	rules<<"Factor\n";
 }
 |
@@ -835,6 +872,10 @@ void print_exp(const std::string s){
 	current_exp.append(std::string("\t", ind)).append(s);
 }
 
+void print_m_exp(const std::string s){
+	current_m_exp.append(std::string("\t", ind)).append(s);
+}
+
 void print_addop(const std::string op){
 	if (temp_exp < 2){
 		et.append(op);
@@ -847,6 +888,20 @@ void print_addop(const std::string op){
 	}
 	++temp_exp;
 }
+
+void print_mulop(const std::string op){
+	if (temp_m_exp < 2){
+		m_et.append(op);
+	}else{
+		if (temp_m_exp == 2){
+			print_m_exp(Temp_Eq(++tmpc).append(m_et).append("\n"));
+		}
+		print_m_exp(Temp_Eq(tmpc + 1).append(Temp()).append(op));
+		m_et = Temp(++tmpc);
+	}
+	++temp_m_exp;
+}
+
 
 void print_exp_text(void){
 	if (temp_exp <= 2){
@@ -863,7 +918,23 @@ void print_exp_text(const std::string s){
 		current_exp.append(s);
 	}
 }
+/*
+void print_m_exp_text(void){
+	if (temp_exp <= 2){
+		m_et.append(std::string(yytext_ptr));
+	}else{
+		current_m_exp.append(std::string(yytext_ptr));
+	}
+}
 
+void print_m_exp_text(const std::string s){
+	if (temp_exp <= 2){
+		m_et.append(s);
+	}else{
+		current_m_exp.append(s);
+	}
+}
+*/
 int main(void){
 	int ret = yyparse();
 	//std::fstream sym(SYM_OUTPUT, std::ios::out | std::ios::trunc);

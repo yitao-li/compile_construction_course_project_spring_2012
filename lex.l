@@ -158,7 +158,7 @@ while	{return T_WHILE;}
 {RELOP}	{return T_RELOP;}
 
 
-{MULOP}	{return T_MULOP;}
+{MULOP}	{return T_MUL;}
 
 
 {OTHER} {return *yytext_ptr;}
