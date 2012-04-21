@@ -515,7 +515,7 @@ Multiplicand
 		print_exp_text(current_factor);    //no multiplication required, print directly as part of the summand
 	}else if (temp_m_exp == 2){
 		if (temp_exp == 1){
-			print_exp_text(current_m_exp);   //e.g. c := a * b; no temporary required
+			print_exp_text(m_et);   //e.g. c := a * b; no temporary required
 		}else{
 			current_exp = current_m_exp.append(Temp_Eq(++tmpc)).append(m_et).append("\n").append(current_exp); //e.g. c := a * b; requiring 1 temporary
 			print_exp_text(Temp());
