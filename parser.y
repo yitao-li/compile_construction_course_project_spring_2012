@@ -681,15 +681,51 @@ T_NOT Factor
 
 /* not sure if necessary */
 
-	temp_exp = 1;  //at least 1 term exists on the right-hand side
-	current_exp = "";
-	current_m_exps = "";
-	et = "";
+//	temp_exp = 1;  //at least 1 term exists on the right-hand side
+//	current_exp = "";
+//	current_m_exps = "";
+//	et = "";
 
 }
 Expression
 {
-//TODO: RECOVER CURRENT_M_EXPS AS WELL IN SAVE / RECOVERY
+
+
+
+
+
+
+
+//TODO: fix error for expressions such as 'm := 3 * 4 + 1'
+//TODO: fix error for expressions such as 'm := 3 * 4 + 1'
+//TODO: fix error for expressions such as 'm := 3 * 4 + 1'
+//TODO: fix error for expressions such as 'm := 3 * 4 + 1'
+
+
+
+
+
+
+//TODO: fix error for expressions such as 'm := 3 * 4 + 1'
+//TODO: fix error for expressions such as 'm := 3 * 4 + 1'
+//TODO: fix error for expressions such as 'm := 3 * 4 + 1'
+//TODO: fix error for expressions such as 'm := 3 * 4 + 1'
+
+//TODO: fix error for expressions such as 'm := 3 * 4 + 1'
+//TODO: fix error for expressions such as 'm := 3 * 4 + 1'
+//TODO: fix error for expressions such as 'm := 3 * 4 + 1'
+//TODO: fix error for expressions such as 'm := 3 * 4 + 1'
+
+
+
+
+
+
+
+
+
+
+
 	exp_type = "";
 //	current_m_exps.append(current_exp);
 	//std::cout<<"\ncurrent_exp == \n"<<current_exp;
