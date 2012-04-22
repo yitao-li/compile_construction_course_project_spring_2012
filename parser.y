@@ -50,7 +50,7 @@ bool temp_var;  //n_op: number of operators found in current expression <-- note
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, term_sgn, current_const, current_l, current_u, temp_exp, temp_m_exp, n_op;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
 std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop;  //tac output for current variable/expression
 std::stack<std::string> current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
-std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, n_op_save;
+std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, n_op_save, term_sgn_save;
 id_attr current_id_attr;
 std::vector<std::string> current_argv;
 std::fstream rules(RULES_OUTPUT, std::ios::out | std::ios::trunc), tac(TAC_OUTPUT, std::ios::out | std::ios::trunc);
@@ -315,7 +315,6 @@ T_ASSIGNMENT Expression
 	lhs_type = "";
 	exp_type = "";
 	tac<<current_exp<<lhs_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
-	//print_tac("assignment statemet")
 	print_tac(lhs_vt.append(" := ").append(et).append("\n"));
 	et = "";
 	current_exp = "";
@@ -446,8 +445,6 @@ SimpleExpression
 |
 SimpleExpression
 {
-	//note: this may or may not be printing tac
-	//note: must make sure et and _et are not exps
 	_et = et;
 	_current_exp = current_exp; //et = "";
 }
@@ -457,7 +454,6 @@ SimpleExpression
 	current_exp = _current_exp.append(current_exp);
 	et = _et.append(" ").append(current_relop).append(" ").append(et);
 	temp_exp = 2;
-	//temp_m_exp = 1;   //note: this may or may not be needed
 	exp_type = "boolean";
 	rules<<"Expression\n";
 }
@@ -468,14 +464,12 @@ RelationalOp
 T_RELOP
 {
 	current_relop = std::string(yytext_ptr);
-//std::cout<<"\ncurrent_relop == "<<current_relop<<"\n";
 	rules<<"RelationalOp\n";
 }
 |
 '='
 {
 	current_relop = "=";
-//std::cout<<"\ncurrent_relop == "<<current_relop<<"\n";
 	rules<<"RelationalOp\n";
 }
 ;
@@ -488,19 +482,15 @@ SimpleExpression
 	current_exp = "";
 	current_m_exps = "";
 	et = "";
-	//use_edx = false;
 }
 Term
 {
 	term_sgn = 1;
-//	print_tac("LINE 495\n");
 	print_multiplicand();
 }
 Summand
 {
-//std::cout<<"LINE 490"<<std::endl;
 	current_exp = current_m_exps.append(current_exp);
-//std::cout<<"\ncurrent_exp == \n"<<current_exp<<std::endl;
 	rules<<"SimpleExpression\n";
 }
 |
@@ -509,19 +499,16 @@ Sign
 	temp_exp = 1;  //at least 1 term exists on the right-hand side
 	n_op = 0;
 	term_sgn = current_sgn;
-	//print_tac(std::string("\ncurrent_sgn == ").append(to_string<int>(current_sgn)).append("\n"));
 	current_exp = "";
 	current_m_exps = "";
 	et = "";
 }
 Term
 {
-//	print_tac("LINE 517\n");
 	print_multiplicand();
 }
 Summand
 {
-//std::cout<<"LINE 505"<<std::endl;
 	current_exp = current_m_exps.append(current_exp);
 	rules<<"SimpleExpression\n";
 }
@@ -628,7 +615,6 @@ AddOp Term
 {
 	term_sgn = 1;
 	print_multiplicand();
-	//if (temp_exp > 2){  note: may need to revise
 	if (temp_exp > 2){
 		current_exp.append("\n");
 	}
@@ -642,7 +628,6 @@ Factor
 :
 T_INT
 {
-	//print_exp_text();
 	current_factor = std::string(yytext_ptr);
 	exp_type = "integer";
 	rules<<"Factor\n";
@@ -650,15 +635,12 @@ T_INT
 |
 T_STR
 {
-	//print_exp_text();
 	current_factor = std::string(yytext_ptr);
 	exp_type = "string";
 	rules<<"Factor\n";
 }
 |
 Variable{
-
-	//current_exp = current_var.append(current_exp);
 	current_m_exps.append(current_var);
 	current_factor = vt;
 	rules<<"Factor\n";
@@ -667,57 +649,30 @@ Variable{
 FunctionReference {rules<<"Factor\n";}
 |
 T_NOT Factor
-{
-	//exp_type = "boolean";  /* this should be unnecessary */
+{	//exp_type = "boolean";  /* this should be unnecessary */
 	rules<<"Factor\n";
 }
 |
 '('
 {
 	save_state(false);
-
-/* not sure if necessary */
-
-//	temp_exp = 1;  //at least 1 term exists on the right-hand side
-//	current_exp = "";
-//	current_m_exps = "";
-//	et = "";
-
 }
 Expression
 {
 	exp_type = "";
-//	current_m_exps.append(current_exp);
-	//std::cout<<"\ncurrent_exp == \n"<<current_exp;
-	//std::cout<<"\net == \n"<<et;
-	
-	//HEREHER
-	
 	if (n_op == 0){  //constant or single variable
-//std::cout<<"current_exp == \n"<<current_exp<<std::endl;
 		current_factor = et;
-		//std::cout<<"SINGLETON\n"<<std::endl;
 	}else if (temp_exp == 2){  //only 1 operator in current expression
-//std::cout<<"LINE 705:\n"<<"\tet == \n"<<et<<std::endl;
-//std::cout<<"1 operator found:\net == "<<et<<std::endl;
 		current_exp.append(Temp_Eq(++tmpc)).append(et).append("\n");
-//std::cout<<"current_exp == \n"<<current_exp<<std::endl;
 		current_factor = Temp();
-		
-	}else{     //extra temporaries required
-		//current_m_exps.append(current_exp);
-//std::cout<<"n_op == "<<n_op<<"\ncurrent_exp == \n"<<current_exp<<std::endl;
-		//std::cout<<"temp_exp > 2\ncurrent_m_exps ==\n"<<current_m_exps<<std::endl;
+	}else{     //temporary variable required
 		current_factor = et;
 	}
 	tmp_exp = current_exp;
-//	et = "";
 }')'
 {
 	recover_state(false);
 	current_m_exps.append(tmp_exp);
-//std::cout<<"cf == "<<current_factor<<std::endl;
-//std::cout<<"LINE 724:\n"<<"current_m_exps == \n"<<current_m_exps<<std::endl;
 	rules<<"Factor\n";
 }
 ;
@@ -847,9 +802,7 @@ int UpdateVar(void){
 		if (LookupId(current_scope, s = std::string("var ").append(*itr), exp_type)){
 			yyerror(std::string("redeclaration of variable '").append(*itr).append("'").c_str());
 			++s_err;
-		}else{
-			//current_scope -> symt[s] = id_attr(LookupTypeDef(type), current_scope -> symt.size());
-			/* note: at this level use typename instead */
+		}else{  /* note: at this level use typename instead */
 			current_scope -> symt[s] = id_attr(type, current_scope -> symt.size());
 		}
 	}
@@ -917,7 +870,6 @@ std::string Temp_Eq(int c){
 	return std::string("temp").append(to_string<int>(c)).append(" := ");
 }
 
-
 void print_label(const std::string s){
 	tac<<std::string("\t", ind)<<s<<":\n";
 	++ind;
@@ -940,13 +892,8 @@ void print_m_exp(const std::string s){
 }
 
 void print_addop(const std::string op){
-//std::cout<<"LINE 945"<<std::endl;
-	//if (temp_exp < 2){
-//std::cout<<"LINE 947"<<std::endl;
-	std::cout<<"print_addop: temp_m_exp == "<<temp_m_exp<<std::endl;
 	if (temp_exp < 2){
 		if (temp_m_exp == 2){   //note: temp_m_exp may only need to be boolean?
-//std::cout<<"LINE 994"<<std::endl;
 			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
 			et = Temp();
 		}
@@ -954,9 +901,7 @@ void print_addop(const std::string op){
 	}else{
 		if (temp_exp == 2 && temp_m_exp == 1){
 			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
-//std::cout<<"LINE 1001 Temp() == "<<Temp()<<std::endl;
 		}
-//std::cout<<"LINE 1003"<<std::endl;
 		print_exp(Temp_Eq(tmpc + 1).append(Temp()).append(op));
 		et = Temp(++tmpc);
 	}
@@ -967,7 +912,7 @@ void print_addop(const std::string op){
 void print_mulop(const std::string op){
 	if (temp_m_exp < 2){
 		m_et.append(op);
-	}else{// if (temp_m_exp > 2){
+	}else{
 		if (temp_m_exp == 2){
 			print_m_exp(Temp_Eq(++tmpc).append(m_et).append("\n"));
 		}
@@ -1022,6 +967,7 @@ void save_state(bool save_current_factor){
 	temp_exp_save.push(temp_exp);
 	temp_m_exp_save.push(temp_m_exp);
 	n_op_save.push(n_op);
+	term_sgn_save.push(term_sgn);
 }
 
 void recover_state(bool recover_current_factor){
@@ -1075,6 +1021,8 @@ void recover_state(bool recover_current_factor){
 	temp_m_exp_save.pop();
 	n_op = n_op_save.top() + n_op;   //note: n_op is the total number of operations found in the entire expression
 	n_op_save.pop();
+	term_sgn = term_sgn_save.top();
+	term_sgn_save.pop();
 }
 
 void print_multiplicand(void){
@@ -1084,14 +1032,10 @@ void print_multiplicand(void){
 		if (temp_exp == 1){
 			print_exp_text(term_sgn == 1 ? m_et : std::string("-").append(m_et));   //e.g. c := a * b; no temporary required
 		}else{
-			//current_exp = current_m_exp.append(Temp_Eq(++tmpc)).append(m_et).append("\n").append(current_exp);
 			current_m_exps.append(current_m_exp.append(Temp_Eq(++tmpc)).append(term_sgn == 1 ? m_et : std::string("-").append(m_et)).append("\n"));  //e.g. c := a * b; requiring 1 temporary
 			print_exp_text(Temp());
-//.temp_m_exp = 1;//HEREHERE
 		}
-		//temp_m_exp = 1;  //this is in order to avoid executing the code above repeatedly
-	}else{   //temporary required, reverse sign of temporary if necessary
-		//current_exp = current_m_exp.append(current_exp);
+	}else{     //temporary required, reverse sign of temporary if necessary
 		current_m_exps.append(current_m_exp);
 		if (term_sgn == -1){
 			current_m_exps.append(Temp_Eq(tmpc + 1)).append("-").append(Temp()).append("\t\t; note: this is because the current term has a minus sign\n");
@@ -1102,23 +1046,6 @@ void print_multiplicand(void){
 	current_factor = "";
 }
 
-/*
-void print_m_exp_text(void){
-	if (temp_exp <= 2){
-		m_et.append(std::string(yytext_ptr));
-	}else{
-		current_m_exp.append(std::string(yytext_ptr));
-	}
-}
-
-void print_m_exp_text(const std::string s){
-	if (temp_exp <= 2){
-		m_et.append(s);
-	}else{
-		current_m_exp.append(s);
-	}
-}
-*/
 int main(void){
 	int ret = yyparse();
 	//std::fstream sym(SYM_OUTPUT, std::ios::out | std::ios::trunc);
