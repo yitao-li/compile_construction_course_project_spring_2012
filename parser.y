@@ -46,10 +46,11 @@ typedef struct scope{
 } scope;
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
-bool temp_var;  //n_op: number of operators found in current expression <-- note: n_op is computed recursively
+bool temp_var, index_op;  //n_op: number of operators found in current expression <-- note: n_op is computed recursively
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, term_sgn, current_const, current_l, current_u, temp_exp, temp_m_exp, n_op;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
-std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop;  //tac output for current variable/expression
-std::stack<std::string> current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
+std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, index_t, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop;  //tac output for current variable/expression
+std::stack<bool> temp_var_save;
+std::stack<std::string> current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save, array_t;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
 std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, n_op_save, term_sgn_save;
 id_attr current_id_attr;
 std::vector<std::string> current_argv;
@@ -626,6 +627,9 @@ Summand {
 
 Factor
 :
+{
+	index_op = false;
+}
 T_INT
 {
 	current_factor = std::string(yytext_ptr);
@@ -703,6 +707,9 @@ T_ID
 	vt = prev_id;
 }
 ComponentSelection {
+	if (temp_var){
+		vt = Temp();
+	}
 	rules<<"Variable\n";
 }
 ;
@@ -747,34 +754,36 @@ ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the sp
 |
 '['
 {
+	array_t.push(vt);
 	save_state(true);
 }
 Expression
 {
-//	index_t = et;
-//HEREHERE
-//std::cout<<"\ncurrent_exp == "<<current_exp<<std::endl;
-
-	if (temp_exp == 2){  //note: in tac form [] operator can only have constant or 1 single variable as argument
+	vt = array_t.top();
+	array_t.pop();
+	if ((temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2)){  //note: in tac form [] operator can only have constant or 1 single variable as argument
 		current_exp.append(Temp_Eq(++tmpc)).append(et).append("\n");
 		et = Temp();
 	}
 	if (!temp_var){
-		print_var(Temp_Eq(tmpc + 1).append(vt).append("[").append(et).append("]\n"));
-		temp_var = true;
+	//HEREHERE
+//		print_var(Temp_Eq(++tmpc).append(vt).append("[").append(et).append("]\n"));
+		index_t = vt.append("[").append(et).append("]");
+//		temp_var = true;
 	}else{
-		print_var(Temp_Eq(tmpc + 1).append(Temp()).append("[").append(et).append("]\n"));
+		//print_var(Temp_Eq(++tmpc).append(Temp()).append("[").append(et).append("]\n"));
+		index_t = Temp().append("[").append(et).append("]");
 	}
-
 	tac<<current_exp<<current_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
-	restore_state(true);
-	vt = Temp();
 }
 ']'
 {
+	restore_state(true);
+	vt = index_t;
+	index_op = true;
 	std::map<std::string, id_attr>::iterator t;
 	std::map<std::string, std::string>::iterator ft;
-	if (exp_type != ""){   //if no error occurred in previous type lookup
+	if (exp_type != ""){    //if no error occurred in previous type lookup
 		if ( (t = current_scope -> symt.find(std::string("typedef ").append(exp_type))) == current_scope -> symt.end() ){
 			yyerror(std::string("type '").append(exp_type).append("' is not defined").c_str());
 			exp_type = "";
@@ -787,9 +796,10 @@ Expression
 			exp_type = ft -> second;
 		}
 	}
-	vt = Temp(++tmpc);
 }
-ComponentSelection {rules<<"ComponentSelection\n";}
+ComponentSelection{
+	rules<<"ComponentSelection\n";
+}
 ;
 
 ActualParameterList
@@ -928,19 +938,21 @@ void print_m_exp(const std::string s){
 }
 
 void print_addop(const std::string op){
+//print_tac(std::string("temp_exp == ").append(to_string<int>(temp_exp)).append(", temp_m_exp == ").append(to_string<int>(temp_m_exp)).append("\n"));
 	if (temp_exp < 2){
-		if (temp_m_exp == 2){   //note: temp_m_exp may only need to be boolean?
+		if (index_op || (temp_m_exp == 2)){   //note: temp_m_exp may only need to be boolean?
 			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
 			et = Temp();
 		}
 		et.append(op);
 	}else{
-		if (temp_exp == 2 && temp_m_exp == 1){
+		if (index_op || (temp_exp == 2 && temp_m_exp == 1)){
 			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
 		}
 		print_exp(Temp_Eq(tmpc + 1).append(Temp()).append(op));
 		et = Temp(++tmpc);
 	}
+	index_op = false;
 	++n_op;
 	++temp_exp;
 }
@@ -949,12 +961,13 @@ void print_mulop(const std::string op){
 	if (temp_m_exp < 2){
 		m_et.append(op);
 	}else{
-		if (temp_m_exp == 2){
+		if (index_op || (temp_m_exp == 2)){
 			print_m_exp(Temp_Eq(++tmpc).append(m_et).append("\n"));
 		}
 		print_m_exp(Temp_Eq(tmpc + 1).append(Temp()).append(op));
 		m_et = Temp(++tmpc);
 	}
+	index_op = false;
 	++n_op;
 	++temp_m_exp;
 }
@@ -977,6 +990,7 @@ void print_exp_text(const std::string s){
 }
 
 void save_state(bool save_current_factor){
+	temp_var_save.push(temp_var);
 	current_id_save.push(current_id);
 	current_ret_save.push(current_ret);
 	type_save.push(type);
@@ -1007,6 +1021,8 @@ void save_state(bool save_current_factor){
 }
 
 void restore_state(bool recover_current_factor){
+	temp_var = temp_var_save.top();
+	temp_var_save.pop();
 	current_id = current_id_save.top();
 	current_id_save.pop();
 	current_ret = current_ret_save.top();

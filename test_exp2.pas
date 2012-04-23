@@ -11,9 +11,9 @@ type
 	DOUBLE_ARRAY = array[1..10] of ARRAY;                              
 var
 	z : s;
-	m : in;
-	a : ARRAY;
-	b : DOUBLE_ARRAY;
+	m, nested1, nested2, error, prod: in;
+	a, b, c: ARRAY; 
+	d : DOUBLE_ARRAY;
 begin
 	m := a[0];
 	m := a[0 - 1];
@@ -24,8 +24,10 @@ begin
 	m := a[0 * 0 - 1 * 1];
 	m := a[0 * 0 * 0- 1 * 1 * 1];
 	m := a[0 + 1 + 2];
-	m := a[(1 + 2) * (3 + 4)];
-	m := b[0]; {incompatible assignment}
+	prod := a[(1 + 2) * (3 + 4)];
+	error := d[0]; {incompatible assignment}
+	nested1 := a[a[a[0] + 1] + 2]; {nested}
+	nested2 := a[b[c[0] + 1] + 2];
 	m := (1 - 2 div 3) * (3 * 4 + 55);
 	m := -2 div (1 - 2 * (3 - 4 div (5 + 6)));
 end.
