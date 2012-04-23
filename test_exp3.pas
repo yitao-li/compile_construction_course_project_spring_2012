@@ -8,12 +8,14 @@ type
 	s = string;
 	in = integer;
 	ARRAY = array[1..10] of integer;
-	DOUBLE_ARRAY = array[1..10] of ARRAY;                              
+	DOUBLE_ARRAY = array[1..10] of ARRAY;
+
 var
 	z : s;
 	m, nested1, nested2, error, prod: in;
 	a, b, c: ARRAY; 
 	d : DOUBLE_ARRAY;
+	                                                
 begin
 	a[0] := m;
 	a[0 - 1] := m;

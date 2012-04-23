@@ -390,9 +390,8 @@ T_ARRAY '[' Constant{current_l = current_const;} T_RANGE Constant{current_u = cu
 	current_id_attr.type.append("array[").append(to_string<int>(current_l)).append("..").append(to_string<int>(current_u)).append("]_of_");
 } Type {rules<<"Type\n";}
 {
-	std::string t = LookupTypeDef(type);
-	current_id_attr.type.append(t);
-	current_id_attr.field_list["."] = t;
+	current_id_attr.type.append(LookupTypeDef(type));
+	current_id_attr.field_list["."] = type;
 }
 |
 T_RECORD {
@@ -654,6 +653,7 @@ T_STR
 |
 Variable{
 	current_m_exps.append(current_var);
+	current_var = "";
 	current_factor = vt;
 	rules<<"Factor\n";
 }
@@ -732,7 +732,11 @@ ComponentSelection
 |
 '.'
 {
-	if (!temp_var){
+	if (index_op){
+		print_var(Temp_Eq(++tmpc).append(vt).append("\n"));
+		print_var(Temp_Eq(tmpc + 1).append(Temp()).append("."));
+		index_op = false;
+	}else if (!temp_var){
 		print_var(Temp_Eq(tmpc + 1).append(vt).append("."));
 		temp_var = true;
 	}else{
@@ -770,7 +774,11 @@ Expression
 {
 	vt = array_t.top();
 	array_t.pop();
-	if ((temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2)){  //note: in tac form [] operator can only have constant or 1 single variable as argument
+	if (index_op){
+		current_exp.append(Temp_Eq(++tmpc)).append(et).append("\n");
+		et = Temp();
+		index_op = false;
+	}else if ((temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2)){  //note: in tac form [] operator can only have constant or 1 single variable as argument
 		current_exp.append(Temp_Eq(++tmpc)).append(et).append("\n");
 		et = Temp();
 	}
@@ -798,7 +806,8 @@ Expression
 			exp_type = "";
 			++s_err;
 		}else{
-			exp_type = ft -> second;
+//std::cout<<"TYPE == "<<t -> second.type<<std::endl;
+			exp_type = ft -> second;//HEREHERE
 		}
 	}
 }
@@ -981,16 +990,6 @@ void print_mulop(const std::string op){
 	++temp_m_exp;
 }
 
-/*
-void print_exp_text(void){
-	if (temp_exp <= 2){
-		et.append(std::string(yytext_ptr));
-	}else{
-		current_exp.append(std::string(yytext_ptr));
-	}
-}
-*/
-
 void print_exp_text(const std::string s){
 	if (temp_exp <= 2){
 		et.append(s);
@@ -1098,12 +1097,10 @@ void print_multiplicand(void){
 			current_m_exps.append(current_m_exp);  //e.g. c := a * b; requiring 1 temporary
 			print_exp_text(Temp());
 		}
-		//HEREHERE
 	}else{     //temporary required, reverse sign of temporary if necessary
 		current_m_exps.append(current_m_exp);
 		if (term_sgn == -1){
-			print_m_exps(std::string(m_et).append(" := -").append(m_et).append("\t\t; note: this is because the current term has a minus sign\n"));
-			//m_et = Temp();
+			print_m_exps(std::string(m_et).append(" := -").append(m_et).append("\n"));
 		}
 		print_exp_text(m_et);
 	}
