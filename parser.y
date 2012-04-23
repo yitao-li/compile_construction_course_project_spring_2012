@@ -65,7 +65,7 @@ inline std::string to_string (const T & t){
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
 std::string LookupTypeDef(const std::string), Temp(void), Temp(int), Temp_Eq(void), Temp_Eq(int);
-void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string), save_state(bool), restore_state(bool), print_multiplicand(void);
+void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_m_exps(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string), save_state(bool), restore_state(bool), print_multiplicand(void);
 
 /*, print_m_exp_text(const std::string), print_exp_text(void), print_m_exp_text(void)*/
 
@@ -942,6 +942,10 @@ void print_m_exp(const std::string s){
 	current_m_exp.append(std::string("\t", ind)).append(s);
 }
 
+void print_m_exps(const std::string s){
+	current_m_exps.append(std::string("\t", ind)).append(s);
+}
+
 void print_addop(const std::string op){
 //print_tac(std::string("temp_exp == ").append(to_string<int>(temp_exp)).append(", temp_m_exp == ").append(to_string<int>(temp_m_exp)).append("\n"));
 	if (temp_exp < 2){
@@ -977,7 +981,7 @@ void print_mulop(const std::string op){
 	++temp_m_exp;
 }
 
-
+/*
 void print_exp_text(void){
 	if (temp_exp <= 2){
 		et.append(std::string(yytext_ptr));
@@ -985,6 +989,7 @@ void print_exp_text(void){
 		current_exp.append(std::string(yytext_ptr));
 	}
 }
+*/
 
 void print_exp_text(const std::string s){
 	if (temp_exp <= 2){
@@ -1089,14 +1094,16 @@ void print_multiplicand(void){
 		if (temp_exp == 1){
 			print_exp_text(term_sgn == 1 ? m_et : std::string("-").append(m_et));   //e.g. c := a * b; no temporary required
 		}else{
-			current_m_exps.append(current_m_exp.append(Temp_Eq(++tmpc)).append(term_sgn == 1 ? m_et : std::string("-").append(m_et)).append("\n"));  //e.g. c := a * b; requiring 1 temporary
+			print_m_exp(Temp_Eq(++tmpc).append(term_sgn == 1 ? m_et : std::string("-").append(m_et)).append("\n"));
+			current_m_exps.append(current_m_exp);  //e.g. c := a * b; requiring 1 temporary
 			print_exp_text(Temp());
 		}
+		//HEREHERE
 	}else{     //temporary required, reverse sign of temporary if necessary
 		current_m_exps.append(current_m_exp);
 		if (term_sgn == -1){
-			current_m_exps.append(Temp_Eq(tmpc + 1)).append("-").append(Temp()).append("\t\t; note: this is because the current term has a minus sign\n");
-			m_et = Temp(++tmpc);
+			print_m_exps(std::string(m_et).append(" := -").append(m_et).append("\t\t; note: this is because the current term has a minus sign\n"));
+			//m_et = Temp();
 		}
 		print_exp_text(m_et);
 	}
