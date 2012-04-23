@@ -327,6 +327,7 @@ T_ASSIGNMENT Expression
 	et = "";
 	current_exp = "";
 	current_m_exp = "";
+	lhs_index_op = false;
 	rules<<"AssignmentStatement\n";
 }
 ;
@@ -706,6 +707,7 @@ Variable
 T_ID
 {       /* note: the 'variable' in this context could also be a function's return value */
 	temp_var = false;
+	index_op = false;
 	if (!LookupId(current_scope, std::string("var ").append(prev_id), exp_type) && !LookupId(current_scope, std::string("function ").append(prev_id), exp_type)){  // <-- must be a variable
 		yyerror(std::string("variable '").append(prev_id).append("' is not declared").c_str());
 		++s_err;
