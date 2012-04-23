@@ -300,6 +300,7 @@ Variable
 {
 	lhs_type = exp_type;
 	lhs_var = current_var;
+	current_var = "";
 	lhs_vt = vt;
 	lhs_index_op = index_op;
 	index_op = false;
@@ -318,6 +319,9 @@ T_ASSIGNMENT Expression
 	lhs_type = "";
 	exp_type = "";   //note: CORNER CASE "a[i] := b[j]" contains 4 addresses, hence require a temporary when represented in tac form
 	tac<<current_exp<<lhs_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
+//std::cout<<"LINE 322 PRINTING LHS_VAR:\n"<<lhs_var<<std::endl;
+	current_exp = "";
+	lhs_var = "";
 	if (lhs_index_op && (index_op || (temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2))){
 		print_tac(Temp_Eq(++tmpc).append(et).append("\n"));
 		print_tac(lhs_vt.append(" := ").append(Temp()).append("\n"));
@@ -327,6 +331,7 @@ T_ASSIGNMENT Expression
 	et = "";
 	current_exp = "";
 	current_m_exp = "";
+	current_var = "";
 	lhs_index_op = false;
 	rules<<"AssignmentStatement\n";
 }
@@ -419,12 +424,15 @@ FieldList /* assuming FieldList is only used in record declarations */
 /* empty */ {rules<<"FieldList\n";}
 |
 IdentifierList ':' Type {
+/*
 	for (int i = 0; i < current_argc; ++i){
 		current_id_attr.field_list[current_argv[i]] = type;  //entry for type of field in symbol table, note: use typename here
 		current_id_attr.type.append(LookupTypeDef(type)).append(",");
 	}
 	current_argv.clear();
 	current_argc = 0;
+*/
+	UpdateType(NULL);
 }
 OptIdentifiers {rules<<"FieldList\n";}
 ;
@@ -732,14 +740,19 @@ ComponentSelection
 |
 '.'
 {
+//std::cout<<"LINE 741"<<std::endl;
+//print_tac("LINE 741\n");
 	if (index_op){
+//std::cout<<"PRINT_VAR"<<std::endl;
 		print_var(Temp_Eq(++tmpc).append(vt).append("\n"));
 		print_var(Temp_Eq(tmpc + 1).append(Temp()).append("."));
 		index_op = false;
 	}else if (!temp_var){
+//std::cout<<"PRINT_VAR"<<std::endl;
 		print_var(Temp_Eq(tmpc + 1).append(vt).append("."));
 		temp_var = true;
 	}else{
+//std::cout<<"PRINT_VAR"<<std::endl;
 		print_var(Temp_Eq(tmpc + 1).append(Temp()).append("."));
 	}
 	vt = Temp(++tmpc);
@@ -763,7 +776,10 @@ T_ID
 	}
 	current_var.append(prev_id).append("\n");
 }
-ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the specified component exists in object */}
+ComponentSelection
+{
+	rules<<"ComponentSelection\n";
+}
 |
 '['
 {
@@ -772,6 +788,8 @@ ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the sp
 }
 Expression
 {
+//std::cout<<"LINE 785"<<std::endl;
+//print_tac("LINE 785\n");
 	vt = array_t.top();
 	array_t.pop();
 	if (index_op){
@@ -787,11 +805,15 @@ Expression
 	}else{
 		index_t = Temp().append("[").append(et).append("]");
 	}
+//std::cout<<"LINE 807 PRINTING CURRENT_VAR:\n"<<current_var<<std::endl;
 	tac<<current_exp<<current_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
+	//	current_exp = "";
 }
 ']'
 {
 	restore_state(true);
+	current_var = "";
+	//HEREHERE
 	vt = index_t;
 	index_op = true;
 	std::map<std::string, id_attr>::iterator t;
@@ -879,6 +901,7 @@ int UpdateType(scope *next_scope){
 		}
 	}else{
 		for (int i = 0; i < current_argc; ++i){
+			current_id_attr.field_list[current_argv[i]] = type;
 			current_id_attr.type.append(LookupTypeDef(type)).append(",");
 		}
 	}

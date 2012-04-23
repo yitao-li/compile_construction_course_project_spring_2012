@@ -11,7 +11,8 @@ type
 	DOUBLE_ARRAY = array[1..10] of ARRAY;
 	r = record
 		a,b : integer;
-		c   : string
+		c   : string;
+		p   : ARRAY
 	end;
 	RR = array[1..10] of r;
 var
@@ -22,9 +23,11 @@ var
 	rrrr : RR;
 	                                                
 begin
+	rrrr[1337].p[0] := 0;
 	rrrr[0].b := 0;
 	rrrr[rrrr[0].b].a := 0;
 	rrrr[a[0]].b := 0;
 	a[0] := rrrr[a[0]].b;
+	rrrr[a[1234]].b := rrrr[rrrr[56789].b].a;
 	a[0 - 0 div 0] := -2 div (1 - 2 * (3 - 4 div (5 + 6)));  {not handling division by 0 yet}
 end.
