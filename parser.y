@@ -64,7 +64,7 @@ inline std::string to_string (const T & t){
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
 std::string LookupTypeDef(const std::string), Temp(void), Temp(int), Temp_Eq(void), Temp_Eq(int);
-void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string), save_state(bool), recover_state(bool), print_multiplicand(void);
+void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string), save_state(bool), restore_state(bool), print_multiplicand(void);
 
 /*, print_m_exp_text(const std::string), print_exp_text(void), print_m_exp_text(void)*/
 
@@ -671,7 +671,7 @@ Expression
 	tmp_exp = current_exp;
 }')'
 {
-	recover_state(false);
+	restore_state(false);
 	current_m_exps.append(tmp_exp);
 	rules<<"Factor\n";
 }
@@ -747,11 +747,47 @@ ComponentSelection {rules<<"ComponentSelection\n"; /* TODO: check whether the sp
 |
 '['
 {
-	print_tac("[");
+	save_state(true);
 }
-Expression ']'
+Expression
 {
-	print_tac("]");
+//	index_t = et;
+//HEREHERE
+//std::cout<<"\ncurrent_exp == "<<current_exp<<std::endl;
+
+	if (temp_exp == 2){  //note: in tac form [] operator can only have constant or 1 single variable as argument
+		current_exp.append(Temp_Eq(++tmpc)).append(et).append("\n");
+		et = Temp();
+	}
+	if (!temp_var){
+		print_var(Temp_Eq(tmpc + 1).append(vt).append("[").append(et).append("]\n"));
+		temp_var = true;
+	}else{
+		print_var(Temp_Eq(tmpc + 1).append(Temp()).append("[").append(et).append("]\n"));
+	}
+
+	tac<<current_exp<<current_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
+	restore_state(true);
+	vt = Temp();
+}
+']'
+{
+	std::map<std::string, id_attr>::iterator t;
+	std::map<std::string, std::string>::iterator ft;
+	if (exp_type != ""){   //if no error occurred in previous type lookup
+		if ( (t = current_scope -> symt.find(std::string("typedef ").append(exp_type))) == current_scope -> symt.end() ){
+			yyerror(std::string("type '").append(exp_type).append("' is not defined").c_str());
+			exp_type = "";
+			++s_err;
+		}else if ( (ft = t -> second.field_list.find(".")) == t -> second.field_list.end() ){
+			yyerror(std::string("type '").append(exp_type).append("' is not defined as an array").c_str());
+			exp_type = "";
+			++s_err;
+		}else{
+			exp_type = ft -> second;
+		}
+	}
+	vt = Temp(++tmpc);
 }
 ComponentSelection {rules<<"ComponentSelection\n";}
 ;
@@ -970,7 +1006,7 @@ void save_state(bool save_current_factor){
 	term_sgn_save.push(term_sgn);
 }
 
-void recover_state(bool recover_current_factor){
+void restore_state(bool recover_current_factor){
 	current_id = current_id_save.top();
 	current_id_save.pop();
 	current_ret = current_ret_save.top();
