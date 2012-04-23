@@ -320,7 +320,7 @@ T_ASSIGNMENT Expression
 	tac<<current_exp<<lhs_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
 	if (lhs_index_op && (index_op || (temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2))){
 		print_tac(Temp_Eq(++tmpc).append(et).append("\n"));
-		print_tac(lhs_vt.append(" := ").append(Temp()));
+		print_tac(lhs_vt.append(" := ").append(Temp()).append("\n"));
 	}else{
 		print_tac(lhs_vt.append(" := ").append(et).append("\n"));
 	}

@@ -26,5 +26,6 @@ begin
 	a[a[a[0] + 1] + 2] := nested1; {nested}
 	a[b[c[0] + 1] + 2] := a[0 + 0];
 	a[0 + 0] := (1 - 2 div 3) * (3 * 4 + 55);
+	a[0] := (1 - 2 div 3) + (3 * 4 + 55);
 	a[0 - 0 div 0] := -2 div (1 - 2 * (3 - 4 div (5 + 6)));  {not handling division by 0 yet}
 end.
