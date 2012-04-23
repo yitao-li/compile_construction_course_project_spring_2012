@@ -30,14 +30,6 @@ cat rules.out
        type mismatch in assignment of the form "a := b + c" (since specific language-dependent rules are needed to determine the type of the right-hand side
        and the project would become too complicated if all those rules have to be included).
 
-	allocation of registers:
-
-	for arithematics:
-	
-	component selection
-
-	(eax, ebx) relop (ecx, edx)
-
-
+    4. Many other things such as division by 0 are not handled yet (not part of the project though)
        
 */

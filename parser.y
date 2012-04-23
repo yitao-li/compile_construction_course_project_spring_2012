@@ -46,7 +46,7 @@ typedef struct scope{
 } scope;
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
-bool temp_var, index_op;  //n_op: number of operators found in current expression <-- note: n_op is computed recursively
+bool temp_var, index_op, lhs_index_op;  //n_op: number of operators found in current expression <-- note: n_op is computed recursively
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, term_sgn, current_const, current_l, current_u, temp_exp, temp_m_exp, n_op;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
 std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, index_t, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop;  //tac output for current variable/expression
 std::stack<bool> temp_var_save;
@@ -301,6 +301,8 @@ Variable
 	lhs_type = exp_type;
 	lhs_var = current_var;
 	lhs_vt = vt;
+	lhs_index_op = index_op;
+	index_op = false;
 }
 T_ASSIGNMENT Expression
 {
@@ -314,9 +316,14 @@ T_ASSIGNMENT Expression
 		yyerror("unable to determine the type of the right-hand side due to previous error(s)");
 	}
 	lhs_type = "";
-	exp_type = "";
+	exp_type = "";   //note: CORNER CASE "a[i] := b[j]" contains 4 addresses, hence require a temporary when represented in tac form
 	tac<<current_exp<<lhs_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
-	print_tac(lhs_vt.append(" := ").append(et).append("\n"));
+	if (lhs_index_op && (index_op || (temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2))){
+		print_tac(Temp_Eq(++tmpc).append(et).append("\n"));
+		print_tac(lhs_vt.append(" := ").append(Temp()));
+	}else{
+		print_tac(lhs_vt.append(" := ").append(et).append("\n"));
+	}
 	et = "";
 	current_exp = "";
 	current_m_exp = "";
@@ -766,12 +773,8 @@ Expression
 		et = Temp();
 	}
 	if (!temp_var){
-	//HEREHERE
-//		print_var(Temp_Eq(++tmpc).append(vt).append("[").append(et).append("]\n"));
 		index_t = vt.append("[").append(et).append("]");
-//		temp_var = true;
 	}else{
-		//print_var(Temp_Eq(++tmpc).append(Temp()).append("[").append(et).append("]\n"));
 		index_t = Temp().append("[").append(et).append("]");
 	}
 	tac<<current_exp<<current_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
