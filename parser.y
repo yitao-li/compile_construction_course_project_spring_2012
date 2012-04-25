@@ -17,6 +17,7 @@
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
 #define FW 50
+#define FUNC_REF "funcall "
 #define SYM_OUTPUT "symtable.out"
 #define RULES_OUTPUT "rules.out"
 #define TAC_OUTPUT "a.txt"
@@ -46,11 +47,11 @@ typedef struct scope{
 } scope;
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
-bool temp_var, index_op, lhs_index_op;  //n_op: number of operators found in current expression <-- note: n_op is computed recursively
+bool temp_var, unop, lhs_unop;  //n_op: number of operators found in current expression <-- note: n_op is computed recursively
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, term_sgn, current_const, current_l, current_u, temp_exp, temp_m_exp, n_op;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
 std::string prog_name, current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, index_t, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop;  //tac output for current variable/expression
 std::stack<bool> temp_var_save;
-std::stack<std::string> current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save, array_t;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
+std::stack<std::string> function_reference, current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save, array_t;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
 std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, n_op_save, term_sgn_save;
 id_attr current_id_attr;
 std::vector<std::string> current_argv;
@@ -307,8 +308,8 @@ Variable
 	lhs_var = current_var;
 	current_var = "";
 	lhs_vt = vt;
-	lhs_index_op = index_op;
-	index_op = false;
+	lhs_unop = unop;
+	unop = false;
 }
 T_ASSIGNMENT Expression
 {
@@ -327,7 +328,7 @@ T_ASSIGNMENT Expression
 //std::cout<<"LINE 322 PRINTING LHS_VAR:\n"<<lhs_var<<std::endl;
 	current_exp = "";
 	lhs_var = "";
-	if (lhs_index_op && (index_op || (temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2))){
+	if (lhs_unop && (unop || (temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2))){
 		print_tac(Temp_Eq(++tmpc).append(et).append("\n"));
 		print_tac(lhs_vt.append(" := ").append(Temp()).append("\n"));
 	}else{
@@ -336,7 +337,7 @@ T_ASSIGNMENT Expression
 	et = "";
 	current_m_exp = "";
 	current_var = "";
-	lhs_index_op = false;
+	lhs_unop = false;
 	rules<<"AssignmentStatement\n";
 }
 ;
@@ -647,7 +648,7 @@ Summand {
 Factor
 :
 {
-	index_op = false;
+	unop = false;
 }
 T_INT
 {
@@ -663,14 +664,21 @@ T_STR
 	rules<<"Factor\n";
 }
 |
-Variable{
+Variable
+{
 	current_m_exps.append(current_var);
 	current_var = "";
 	current_factor = vt;
 	rules<<"Factor\n";
 }
 |
-FunctionReference {rules<<"Factor\n";}
+FunctionReference
+{
+	unop = true;
+	current_factor = std::string(FUNC_REF).append(function_reference.top());
+	function_reference.pop();
+	rules<<"Factor\n";
+}
 |
 T_NOT Factor
 {	//exp_type = "boolean";  /* this should be unnecessary */
@@ -703,12 +711,13 @@ Expression
 
 FunctionReference
 :
-T_ID 
+T_ID
 {
 	if (!LookupId(current_scope, std::string("function ").append(prev_id), exp_type)){  // <-- must be a function
 		yyerror(std::string("invalid function reference: function '").append(prev_id).append("' is not defined").c_str());
 		++s_err;
 	}
+	function_reference.push(prev_id);   //reason for using stack: function reference can also occur in ActualParameterList
 	ret_type = exp_type;
 }
 '(' ActualParameterList ')' {exp_type = ret_type; rules<<"FunctionReference\n";}
@@ -719,7 +728,7 @@ Variable
 T_ID
 {       /* note: the 'variable' in this context could also be a function's return value */
 	temp_var = false;
-	index_op = false;
+	unop = false;
 	if (!LookupId(current_scope, std::string("var ").append(prev_id), exp_type) && !LookupId(current_scope, std::string("function ").append(prev_id), exp_type)){  // <-- must be a variable
 		yyerror(std::string("variable '").append(prev_id).append("' is not declared").c_str());
 		++s_err;
@@ -744,19 +753,14 @@ ComponentSelection
 |
 '.'
 {
-//std::cout<<"LINE 741"<<std::endl;
-//print_tac("LINE 741\n");
-	if (index_op){
-//std::cout<<"PRINT_VAR"<<std::endl;
+	if (unop){
 		print_var(Temp_Eq(++tmpc).append(vt).append("\n"));
 		print_var(Temp_Eq(tmpc + 1).append(Temp()).append("."));
-		index_op = false;
+		unop = false;
 	}else if (!temp_var){
-//std::cout<<"PRINT_VAR"<<std::endl;
 		print_var(Temp_Eq(tmpc + 1).append(vt).append("."));
 		temp_var = true;
 	}else{
-//std::cout<<"PRINT_VAR"<<std::endl;
 		print_var(Temp_Eq(tmpc + 1).append(Temp()).append("."));
 	}
 	vt = Temp(++tmpc);
@@ -792,14 +796,12 @@ ComponentSelection
 }
 Expression
 {
-//std::cout<<"LINE 785"<<std::endl;
-//print_tac("LINE 785\n");
 	vt = array_t.top();
 	array_t.pop();
-	if (index_op){
+	if (unop){
 		current_exp.append(Temp_Eq(++tmpc)).append(et).append("\n");
 		et = Temp();
-		index_op = false;
+		unop = false;
 	}else if ((temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2)){  //note: in tac form [] operator can only have constant or 1 single variable as argument
 		current_exp.append(Temp_Eq(++tmpc)).append(et).append("\n");
 		et = Temp();
@@ -809,17 +811,14 @@ Expression
 	}else{
 		index_t = Temp().append("[").append(et).append("]");
 	}
-//std::cout<<"LINE 807 PRINTING CURRENT_VAR:\n"<<current_var<<std::endl;
 	tac<<current_exp<<current_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
-	//	current_exp = "";
 }
 ']'
 {
 	restore_state(true);
 	current_var = "";
-	//HEREHERE
 	vt = index_t;
-	index_op = true;
+	unop = true;
 	std::map<std::string, id_attr>::iterator t;
 	std::map<std::string, std::string>::iterator ft;
 	if (exp_type != ""){    //if no error occurred in previous type lookup
@@ -832,8 +831,7 @@ Expression
 			exp_type = "";
 			++s_err;
 		}else{
-//std::cout<<"TYPE == "<<t -> second.type<<std::endl;
-			exp_type = ft -> second;//HEREHERE
+			exp_type = ft -> second;
 		}
 	}
 }
@@ -1017,34 +1015,38 @@ void print_m_exps(const std::string s){
 void print_addop(const std::string op){
 //print_tac(std::string("temp_exp == ").append(to_string<int>(temp_exp)).append(", temp_m_exp == ").append(to_string<int>(temp_m_exp)).append("\n"));
 	if (temp_exp < 2){
-		if (index_op || (temp_m_exp == 2)){   //note: temp_m_exp may only need to be boolean?
+		if (unop || (temp_m_exp == 2)){   //note: temp_m_exp may only need to be boolean?
 			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
 			et = Temp();
 		}
 		et.append(op);
 	}else{
-		if (index_op || (temp_exp == 2 && temp_m_exp == 1)){
+		if (unop || (temp_exp == 2 && temp_m_exp == 1)){
 			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
 		}
 		print_exp(Temp_Eq(tmpc + 1).append(Temp()).append(op));
 		et = Temp(++tmpc);
 	}
-	index_op = false;
+	unop = false;
 	++n_op;
 	++temp_exp;
 }
 
 void print_mulop(const std::string op){
 	if (temp_m_exp < 2){
+		if (unop){
+			print_exp(Temp_Eq(++tmpc).append(m_et).append("\n"));
+			m_et = Temp();
+		}
 		m_et.append(op);
 	}else{
-		if (index_op || (temp_m_exp == 2)){
+		if (unop || (temp_m_exp == 2)){
 			print_m_exp(Temp_Eq(++tmpc).append(m_et).append("\n"));
 		}
 		print_m_exp(Temp_Eq(tmpc + 1).append(Temp()).append(op));
 		m_et = Temp(++tmpc);
 	}
-	index_op = false;
+	unop = false;
 	++n_op;
 	++temp_m_exp;
 }
@@ -1171,7 +1173,7 @@ void print_param(void){
 	current_exp = "";
 	current_m_exp = "";
 	exp_type = "";
-	if (index_op || (temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2)){
+	if (unop || (temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2)){
 		print_tac(Temp_Eq(++tmpc).append(et).append("\n"));
 		print_tac(std::string("param ").append(Temp()).append("\n"));
 	}else{
