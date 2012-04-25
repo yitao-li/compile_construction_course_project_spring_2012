@@ -48,7 +48,7 @@ typedef struct scope{
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
 bool temp_var, index_op, lhs_index_op;  //n_op: number of operators found in current expression <-- note: n_op is computed recursively
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, term_sgn, current_const, current_l, current_u, temp_exp, temp_m_exp, n_op;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
-std::string current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, index_t, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop;  //tac output for current variable/expression
+std::string prog_name, current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, index_t, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop;  //tac output for current variable/expression
 std::stack<bool> temp_var_save;
 std::stack<std::string> current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save, array_t;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
 std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, n_op_save, term_sgn_save;
@@ -65,7 +65,7 @@ inline std::string to_string (const T & t){
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
 std::string LookupTypeDef(const std::string), Temp(void), Temp(int), Temp_Eq(void), Temp_Eq(int);
-void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_m_exps(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string), save_state(bool), restore_state(bool), print_multiplicand(void);
+void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_m_exps(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string), save_state(bool), restore_state(bool), print_multiplicand(void), print_param(void);
 
 /*, print_m_exp_text(const std::string), print_exp_text(void), print_m_exp_text(void)*/
 
@@ -81,9 +81,15 @@ Program
 :
 T_PROGRAM T_ID
 {
-	current_scope -> symt[std::string("program ").append(std::string(yytext_ptr))] = id_attr("program", current_scope -> symt.size());
+	prog_name = std::string(yytext_ptr);
+	current_scope -> symt[std::string("program ").append(prog_name)] = id_attr("program", current_scope -> symt.size());
+	print_tac(std::string("goto program_").append(prog_name).append("\n\n"));
 }
-';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations CompoundStatement '.'
+';' OptTypeDefinitions OptVariableDeclarations OptSubprogramDeclarations
+{
+	print_label(std::string("program_").append(prog_name));
+}
+CompoundStatement '.'
 {
 	rules<<"Program\n";
 }
@@ -174,8 +180,7 @@ T_PROCEDURE T_ID
 {
 	current_id = std::string(yytext_ptr);
 	next_scope = new scope(current_scope);
-	print_label(std::string("procedure_").append(current_id));
-	++ind;
+	print_label(std::string("procedure_").append(current_id)); //++ind;
 }
 '(' FormalParameterList {
 	current_scope -> symt[std::string("procedure ").append(current_id)] = id_attr("void", current_scope -> symt.size());  //procedure returns type 'void'
@@ -184,8 +189,9 @@ T_PROCEDURE T_ID
 	argc = 0;
 }')' ';' DeclarationBody
 {
+	print_tac("return\n\n");
 	--ind;
-	rules<<"ProcedureDeclaration\n"; print_tac("return"); --ind; tac<<"\n";
+	rules<<"ProcedureDeclaration\n";
 }
 ;
 
@@ -195,8 +201,7 @@ T_FUNCTION T_ID
 {
 	current_ret = current_id = std::string(yytext_ptr);
 	next_scope = new scope(current_scope);
-	print_label(std::string("function_").append(current_id));
-	++ind
+	print_label(std::string("function_").append(current_id)); //++ind;
 } '(' FormalParameterList ')' ':' ResultType
 {
 	current_scope -> symt[std::string("function ").append(current_id)] = id_attr(exp_type, current_scope -> symt.size());
@@ -205,6 +210,7 @@ T_FUNCTION T_ID
 	argc = 0;
 }';' DeclarationBody
 {
+	print_tac(std::string("funreturn ").append(current_ret).append("\n\n"));
 	--ind;
 	rules<<"FunctionDeclaration\n";
 }
@@ -214,7 +220,6 @@ DeclarationBody
 :
 Block
 {
-	print_tac(std::string("funreturn ").append(current_ret).append("\t\t; should be \"mov eax, <result>\" in x86 assembly")); --ind; tac<<"\n";
 	rules<<"DeclarationBody\n";
 }
 |
@@ -329,7 +334,6 @@ T_ASSIGNMENT Expression
 		print_tac(lhs_vt.append(" := ").append(et).append("\n"));
 	}
 	et = "";
-	current_exp = "";
 	current_m_exp = "";
 	current_var = "";
 	lhs_index_op = false;
@@ -842,14 +846,22 @@ ActualParameterList
 :
 /* empty */ {rules<<"ActualParameterList\n";}
 |
-Expression OptExpressions {rules<<"ActualParameterList\n";}
+Expression
+{
+	print_param();
+}
+OptExpressions {rules<<"ActualParameterList\n";}
 ;
 
 OptExpressions
 :
 /* empty */ {rules<<"OptExpressions\n";}
 |
-',' Expression OptExpressions {rules<<"OptExpressions\n";}
+',' Expression
+{
+	print_param();
+}
+OptExpressions {rules<<"OptExpressions\n";}
 ;
 
 IdentifierList
@@ -954,28 +966,52 @@ std::string Temp_Eq(int c){
 }
 
 void print_label(const std::string s){
-	tac<<std::string("\t", ind)<<s<<":\n";
+	if (ind){
+		tac<<std::string(ind, '\t')<<s<<":\n";
+	}else{
+		tac<<s<<":\n";
+	}
 	++ind;
 }
 
 void print_tac(const std::string s){
-	tac<<std::string("\t", ind)<<s;
+	if (ind){
+		tac<<std::string(ind, '\t')<<s;
+	}else{
+		tac<<s;
+	}
 }
 
 void print_var(const std::string s){
-	current_var.append(std::string("\t", ind)).append(s);
+	if (ind){
+		current_var.append(std::string(ind, '\t')).append(s);
+	}else{
+		current_var.append(s);
+	}
 }
 
 void print_exp(const std::string s){
-	current_exp.append(std::string("\t", ind)).append(s);
+	if (ind){
+		current_exp.append(std::string(ind, '\t')).append(s);
+	}else{
+		current_exp.append(s);
+	}
 }
 
 void print_m_exp(const std::string s){
-	current_m_exp.append(std::string("\t", ind)).append(s);
+	if (ind){
+		current_m_exp.append(std::string(ind, '\t')).append(s);
+	}else{
+		current_m_exp.append(s);
+	}
 }
 
 void print_m_exps(const std::string s){
-	current_m_exps.append(std::string("\t", ind)).append(s);
+	if (ind){
+		current_m_exps.append(std::string(ind, '\t')).append(s);
+	}else{
+		current_m_exps.append(s);
+	}
 }
 
 void print_addop(const std::string op){
@@ -1128,6 +1164,20 @@ void print_multiplicand(void){
 		print_exp_text(m_et);
 	}
 	current_factor = "";
+}
+
+void print_param(void){
+	tac<<current_exp;
+	current_exp = "";
+	current_m_exp = "";
+	exp_type = "";
+	if (index_op || (temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2)){
+		print_tac(Temp_Eq(++tmpc).append(et).append("\n"));
+		print_tac(std::string("param ").append(Temp()).append("\n"));
+	}else{
+		print_tac(std::string("param ").append(et).append("\n"));
+	}
+	et = "";
 }
 
 int main(void){
