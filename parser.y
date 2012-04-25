@@ -51,10 +51,11 @@ bool temp_var, unop, lhs_unop;  //n_op: number of operators found in current exp
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, term_sgn, current_const, current_l, current_u, temp_exp, temp_m_exp, n_op;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
 std::string prog_name, current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, index_t, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop;  //tac output for current variable/expression
 std::stack<bool> temp_var_save;
-std::stack<std::string> function_reference, current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save, array_t;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
+std::stack<std::string> func_ref, current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save, array_t;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
 std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, n_op_save, term_sgn_save;
+std::vector<std::string> current_argv, current_param;
+std::stack< std::vector<std::string> > func_param;
 id_attr current_id_attr;
-std::vector<std::string> current_argv;
 std::fstream rules(RULES_OUTPUT, std::ios::out | std::ios::trunc), tac(TAC_OUTPUT, std::ios::out | std::ios::trunc);
 
 template <class T>
@@ -66,7 +67,7 @@ inline std::string to_string (const T & t){
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
 std::string LookupTypeDef(const std::string), Temp(void), Temp(int), Temp_Eq(void), Temp_Eq(int);
-void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_m_exps(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string), save_state(bool), restore_state(bool), print_multiplicand(void), print_param(void);
+void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_m_exps(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string), save_state(bool), restore_state(bool), print_multiplicand(void), add_param(void);
 
 /*, print_m_exp_text(const std::string), print_exp_text(void), print_m_exp_text(void)*/
 
@@ -350,7 +351,16 @@ T_ID {
 		++s_err;
 	}
 }
- '(' ActualParameterList ')' {rules<<"ProcedureStatement\n";}
+'('
+{
+	save_state(true);
+}
+ActualParameterList
+')'
+{
+	restore_state(true);
+	rules<<"ProcedureStatement\n";
+}
 ;
 
 StructuredStatement
@@ -617,6 +627,8 @@ Factor
 {
 	temp_m_exp = 1;
 	m_et = current_factor;
+//DEBUG
+std::cout<<"m_et == "<<m_et<<std::endl;
 	current_m_exp = "";
 }
 Multiplicand
@@ -675,8 +687,14 @@ Variable
 FunctionReference
 {
 	unop = true;
-	current_factor = std::string(FUNC_REF).append(function_reference.top());
-	function_reference.pop();
+	for (int i = 0; i < func_param.top().size(); ++i){ //print_tac(std::string("param ").append(func_param.top()[i]).append("\n"));
+		print_m_exps(std::string("param ").append(func_param.top()[i]).append("\n"));
+	}
+	func_param.pop();
+	current_factor = std::string(FUNC_REF).append(func_ref.top());
+//DEBUG
+std::cout<<"current_factor == "<<std::string(FUNC_REF).append(func_ref.top())<<"\n";
+	func_ref.pop();
 	rules<<"Factor\n";
 }
 |
@@ -701,7 +719,8 @@ Expression
 		current_factor = et;
 	}
 	tmp_exp = current_exp;
-}')'
+}
+')'
 {
 	restore_state(false);
 	current_m_exps.append(tmp_exp);
@@ -713,14 +732,30 @@ FunctionReference
 :
 T_ID
 {
+//HEREHERE
 	if (!LookupId(current_scope, std::string("function ").append(prev_id), exp_type)){  // <-- must be a function
 		yyerror(std::string("invalid function reference: function '").append(prev_id).append("' is not defined").c_str());
 		++s_err;
 	}
-	function_reference.push(prev_id);   //reason for using stack: function reference can also occur in ActualParameterList
+	func_ref.push(prev_id);   //reason for using stack: function reference can also occur in ActualParameterList
 	ret_type = exp_type;
 }
-'(' ActualParameterList ')' {exp_type = ret_type; rules<<"FunctionReference\n";}
+'('
+{
+	save_state(true);
+}
+ActualParameterList  //similar reasoning as above
+{
+	func_param.push(current_param);
+	current_param.clear();
+}
+')'
+{
+	restore_state(true);
+	exp_type = ret_type;
+	rules<<"FunctionReference\n";
+//	std::cout<<"FunctionReference\n"<<"func_ref.size() == "<<func_ref.size()<<std::endl;
+}
 ;
 
 Variable
@@ -846,7 +881,7 @@ ActualParameterList
 |
 Expression
 {
-	print_param();
+	add_param();
 }
 OptExpressions {rules<<"ActualParameterList\n";}
 ;
@@ -857,7 +892,7 @@ OptExpressions
 |
 ',' Expression
 {
-	print_param();
+	add_param();
 }
 OptExpressions {rules<<"OptExpressions\n";}
 ;
@@ -964,52 +999,27 @@ std::string Temp_Eq(int c){
 }
 
 void print_label(const std::string s){
-	if (ind){
-		tac<<std::string(ind, '\t')<<s<<":\n";
-	}else{
-		tac<<s<<":\n";
-	}
-	++ind;
+	tac<<std::string(ind++, '\t')<<s<<":\n";
 }
 
 void print_tac(const std::string s){
-	if (ind){
-		tac<<std::string(ind, '\t')<<s;
-	}else{
-		tac<<s;
-	}
+	tac<<std::string(ind, '\t')<<s;
 }
 
 void print_var(const std::string s){
-	if (ind){
-		current_var.append(std::string(ind, '\t')).append(s);
-	}else{
-		current_var.append(s);
-	}
+	current_var.append(std::string(ind, '\t')).append(s);
 }
 
 void print_exp(const std::string s){
-	if (ind){
-		current_exp.append(std::string(ind, '\t')).append(s);
-	}else{
-		current_exp.append(s);
-	}
+	current_exp.append(std::string(ind, '\t')).append(s);
 }
 
 void print_m_exp(const std::string s){
-	if (ind){
-		current_m_exp.append(std::string(ind, '\t')).append(s);
-	}else{
-		current_m_exp.append(s);
-	}
+	current_m_exp.append(std::string(ind, '\t')).append(s);
 }
 
 void print_m_exps(const std::string s){
-	if (ind){
-		current_m_exps.append(std::string(ind, '\t')).append(s);
-	}else{
-		current_m_exps.append(s);
-	}
+	current_m_exps.append(std::string(ind, '\t')).append(s);
 }
 
 void print_addop(const std::string op){
@@ -1168,16 +1178,16 @@ void print_multiplicand(void){
 	current_factor = "";
 }
 
-void print_param(void){
+void add_param(void){
 	tac<<current_exp;
 	current_exp = "";
 	current_m_exp = "";
 	exp_type = "";
 	if (unop || (temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2)){
-		print_tac(Temp_Eq(++tmpc).append(et).append("\n"));
-		print_tac(std::string("param ").append(Temp()).append("\n"));
+		print_tac(Temp_Eq(++tmpc).append(et).append("\n"));  //print_tac(std::string("param ").append(Temp()).append("\n"));
+		current_param.push_back(Temp());
 	}else{
-		print_tac(std::string("param ").append(et).append("\n"));
+		current_param.push_back(et);   //print_tac(std::string("param ").append(et).append("\n"));
 	}
 	et = "";
 }
