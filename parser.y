@@ -685,15 +685,13 @@ Variable
 }
 |
 FunctionReference
-{
-	unop = true;
+{ //unop = true;  //note: with the current grammar using unop for function calls and params would be too complicated and error-prone
 	for (int i = 0; i < func_param.top().size(); ++i){ //print_tac(std::string("param ").append(func_param.top()[i]).append("\n"));
 		print_m_exps(std::string("param ").append(func_param.top()[i]).append("\n"));
 	}
 	func_param.pop();
-	current_factor = std::string(FUNC_REF).append(func_ref.top());
-//DEBUG
-std::cout<<"current_factor == "<<std::string(FUNC_REF).append(func_ref.top())<<"\n";
+	print_m_exps(Temp_Eq(++tmpc).append(FUNC_REF).append(func_ref.top()).append("\n"));
+	current_factor = Temp();
 	func_ref.pop();
 	rules<<"Factor\n";
 }
