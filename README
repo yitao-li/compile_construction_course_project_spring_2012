@@ -31,5 +31,7 @@ cat rules.out
        and the project would become too complicated if all those rules have to be included).
 
     4. Many other things such as division by 0 are not handled yet (not part of the project though)
+
+    5. function reference is not completely working
        
 */
