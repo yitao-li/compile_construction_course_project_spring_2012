@@ -666,6 +666,7 @@ Summand
 AddOp Term
 {
 	term_sgn = 1;
+std::cout<<"current_exp == "<<current_exp<<", et =="<<et<<std::endl;
 	print_multiplicand();
 	if (temp_exp > 2){
 		current_exp.append("\n");
@@ -1044,7 +1045,6 @@ void print_m_exps(const std::string s){
 }
 
 void print_addop(const std::string op){
-//print_tac(std::string("temp_exp == ").append(to_string<int>(temp_exp)).append(", temp_m_exp == ").append(to_string<int>(temp_m_exp)).append("\n"));
 	if (temp_exp < 2){
 		if (unop || (temp_m_exp == 2)){   //note: temp_m_exp may only need to be boolean?
 			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
@@ -1052,7 +1052,7 @@ void print_addop(const std::string op){
 		}
 		et.append(op);
 	}else{
-		if (unop || (temp_exp == 2 && temp_m_exp == 1)){
+		if (unop || temp_exp == 2 || temp_m_exp == 2){
 			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
 		}
 		print_exp(Temp_Eq(tmpc + 1).append(Temp()).append(op));
@@ -1185,7 +1185,12 @@ void print_multiplicand(void){
 		}else{
 			print_m_exp(Temp_Eq(++tmpc).append(term_sgn == 1 ? m_et : std::string("-").append(m_et)).append("\n"));
 			current_m_exps.append(current_m_exp);  //e.g. c := a * b; requiring 1 temporary
-			print_exp_text(Temp());
+			if (temp_exp == 2){
+std::cout<<"et == "<<et<<", Temp == "<<Temp()<<std::endl;
+				et.append(Temp());
+			}else{
+				print_exp_text(Temp());
+			}
 		}
 	}else{     //temporary required, reverse sign of temporary if necessary
 		current_m_exps.append(current_m_exp);
