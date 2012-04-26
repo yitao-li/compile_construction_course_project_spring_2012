@@ -48,12 +48,12 @@ typedef struct scope{
 } scope;
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
-bool temp_var, unop, lhs_unop;  //n_op: number of operators found in current expression <-- note: n_op is computed recursively
-int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, term_sgn, current_const, current_l, current_u, temp_exp, temp_m_exp, n_op;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
+bool temp_var, unop, lhs_unop;
+int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, term_sgn, current_const, current_l, current_u, temp_exp = 1, temp_m_exp = 1;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
 std::string prog_name, current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, index_t, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop;  //tac output for current variable/expression
 std::stack<bool> temp_var_save;
 std::stack<std::string> func_ref, current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save, prev_id_save, array_t;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
-std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, n_op_save, term_sgn_save;
+std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, term_sgn_save;
 std::vector<std::string> current_argv, current_param;
 std::stack< std::vector<std::string> > func_param;
 id_attr current_id_attr;
@@ -516,7 +516,6 @@ SimpleExpression
 :
 {
 	temp_exp = 1;  //at least 1 term exists on the right-hand side
-	n_op = 0;
 	current_exp = "";
 	current_m_exps = "";
 	et = "";
@@ -535,7 +534,6 @@ Summand
 Sign
 {
 	temp_exp = 1;  //at least 1 term exists on the right-hand side
-	n_op = 0;
 	term_sgn = current_sgn;
 	current_exp = "";
 	current_m_exps = "";
@@ -695,14 +693,18 @@ FunctionReference
 		print_m_exps(std::string("param ").append(func_param.top()[i]).append("\n"));
 	}
 	func_param.pop();
-	print_m_exps(Temp_Eq(++tmpc).append(FUNC_REF).append(func_ref.top()).append("\n"));
+	print_exp(Temp_Eq(++tmpc).append(FUNC_REF).append(func_ref.top()).append("\n"));
 	current_factor = Temp();
 	func_ref.pop();
 	rules<<"Factor\n";
 }
 |
 T_NOT Factor
-{	//exp_type = "boolean";  /* this should be unnecessary */
+{
+	print_m_exps(Temp_Eq(++tmpc).append(current_factor).append("\n"));
+	print_m_exps(Temp_Eq().append("not ").append(Temp()).append("\n"));
+	current_factor = Temp();
+	unop = false;
 	rules<<"Factor\n";
 }
 |
@@ -713,7 +715,7 @@ T_NOT Factor
 Expression
 {
 	exp_type = "";
-	if (n_op == 0){  //constant or single variable
+	if (temp_exp == 1 && temp_m_exp == 1){  //constant or single variable
 		current_factor = et;
 	}else if (temp_exp == 2){  //only 1 operator in current expression
 		print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
@@ -756,7 +758,6 @@ ActualParameterList  //similar reasoning as above
 	restore_state(true);
 	exp_type = ret_type;
 	rules<<"FunctionReference\n";
-//	std::cout<<"FunctionReference\n"<<"func_ref.size() == "<<func_ref.size()<<std::endl;
 }
 ;
 
@@ -1040,7 +1041,6 @@ void print_addop(const std::string op){
 		et = Temp(++tmpc);
 	}
 	unop = false;
-	++n_op;
 	++temp_exp;
 }
 
@@ -1059,7 +1059,6 @@ void print_mulop(const std::string op){
 		m_et = Temp(++tmpc);
 	}
 	unop = false;
-	++n_op;
 	++temp_m_exp;
 }
 
@@ -1099,7 +1098,6 @@ void save_state(bool save_current_factor){
 	temp_exp_save.push(temp_exp);
 	temp_m_exp_save.push(temp_m_exp);
 	prev_id_save.push(prev_id);
-	n_op_save.push(n_op);
 	term_sgn_save.push(term_sgn);
 }
 
@@ -1156,8 +1154,6 @@ void restore_state(bool recover_current_factor){
 	temp_m_exp_save.pop();
 	prev_id = prev_id_save.top();
 	prev_id_save.pop();
-	n_op = n_op_save.top() + n_op;   //note: n_op is the total number of operations found in the entire expression
-	n_op_save.pop();
 	term_sgn = term_sgn_save.top();
 	term_sgn_save.pop();
 }
@@ -1182,7 +1178,28 @@ void print_multiplicand(void){
 	}
 	current_factor = "";
 }
-
+/*
+void print_negation(void){
+	if (temp_m_exp == 1){
+		print_exp_text(std::string("not ").append(current_factor));    //no multiplication required, print directly as part of the summand
+	}else if (temp_m_exp == 2){
+		if (temp_exp == 1){
+			print_exp(Temp_Eq(++tmpc).append(m_et).append("\n"));
+			print_exp_text(std::string("not ").append(Temp()));   //e.g. c := a * b; no temporary required
+		}else{
+			current_m_exps.append(current_m_exp);  //e.g. c := a * b; requiring 1 temporary
+			print_exp_text(Temp());
+		}
+	}else{     //temporary required, reverse sign of temporary if necessary
+		current_m_exps.append(current_m_exp);
+		if (term_sgn == -1){
+			print_m_exps(std::string(m_et).append(" := -").append(m_et).append("\n"));
+		}
+		print_exp_text(m_et);
+	}
+	current_factor = "";
+}
+*/
 void add_param(void){
 	tac<<current_exp;
 	current_exp = "";

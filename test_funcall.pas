@@ -23,6 +23,7 @@ begin
 end;
 
 begin
+	z := foo(1 * 2) div bar(2);
 	z := foo(foo(1) + bar(2 * foo(3) * z) * foo(bar(0)));
 	z := foo(6 * 5);
 	z := foo(3) * z;
