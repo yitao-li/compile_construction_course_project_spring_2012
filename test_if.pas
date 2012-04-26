@@ -29,4 +29,15 @@ begin
 	b := b and b or b;
 	if b = true then b := false;
 	if b then b := b and b or b;
+	if z = "hello" then
+		begin
+			if z = "hello" then z := "if";
+			m := 100 + 2 * 2 + 1;
+		end
+	else
+		begin
+			m := 200 + 4 * 4 + 2;
+			z := "closeif";
+		end
+	;
 end.

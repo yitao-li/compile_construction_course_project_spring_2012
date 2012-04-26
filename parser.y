@@ -22,6 +22,7 @@
 #define SYM_OUTPUT "symtable.out"
 #define RULES_OUTPUT "rules.out"
 #define TAC_OUTPUT "a.txt"
+#define LABEL "L"
 
 typedef struct id_attr{
 	std::string type;
@@ -49,11 +50,11 @@ typedef struct scope{
 
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
 bool temp_var, unop, lhs_unop;
-int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, term_sgn, current_const, current_l, current_u, temp_exp = 1, temp_m_exp = 1;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
+int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, lc = 0, current_sgn, term_sgn, current_const, current_l, current_u, temp_exp = 1, temp_m_exp = 1;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
 std::string prog_name, current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, index_t, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop = "";  //tac output for current variable/expression
 std::stack<bool> temp_var_save;
 std::stack<std::string> func_ref, current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save, prev_id_save, array_t;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
-std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, term_sgn_save;
+std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, term_sgn_save, lc_save;
 std::vector<std::string> current_argv, current_param;
 std::stack< std::vector<std::string> > func_param;
 id_attr current_id_attr;
@@ -68,7 +69,7 @@ inline std::string to_string (const T & t){
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
 std::string LookupTypeDef(const std::string), Temp(void), Temp(int), Temp_Eq(void), Temp_Eq(int);
-void print_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_m_exps(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string), save_state(bool), restore_state(bool), print_multiplicand(void), add_param(void);
+void print_label(const std::string), print_next_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_m_exps(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string), save_state(bool), restore_state(bool), print_multiplicand(void), add_param(void);
 
 /*, print_m_exp_text(const std::string), print_exp_text(void), print_m_exp_text(void)*/
 
@@ -377,6 +378,7 @@ CompoundStatement {rules<<"StructuredStatement\n";}
 |
 T_IF Expression
 {
+//	std::string then = to_string<int>(++lc), next = to_string<int>(++lc);
 	if (unop){
 		print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
 		et = Temp();
@@ -386,11 +388,23 @@ T_IF Expression
 		et = Temp();
 	}
 	tac<<current_exp;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
-//	std::cout<<"PRINT\n";
-	print_tac(current_relop == "" ? std::string("if ").append(et).append(" = true goto \n") : std::string("if ").append(et).append(" goto \n"));
+	if (current_relop == ""){
+		print_tac(std::string("if ").append(et).append(" = true goto ").append(LABEL).append(to_string<int>(++lc)).append("\n"));
+	}else{
+		print_tac(std::string("if ").append(et).append(" goto ").append(LABEL).append(to_string<int>(++lc)).append("\n"));
+	}
 	current_relop = "";
 }
-T_THEN Statement CloseIf {rules<<"StructuredStatement\n";}
+T_THEN
+{
+	lc_save.push(lc);
+	print_tac(std::string("goto ").append(LABEL).append(to_string<int>(lc + 1)).append("\n"));   //goto else
+	print_next_label(std::string(LABEL).append(to_string<int>(lc)));  //label for if  //lc + 2: label for everything after if then else
+	lc += 2;
+}Statement CloseIf
+{
+	rules<<"StructuredStatement\n";
+}
 |
 T_WHILE Expression {current_relop = "";}T_DO Statement {rules<<"StructuredStatement\n";}
 |
@@ -407,9 +421,24 @@ T_ASSIGNMENT Expression {current_relop = "";} T_TO Expression {current_relop = "
 
 CloseIf
 :
-/* empty */ {rules<<"CloseIf\n";}
+/* empty */
+{
+	rules<<"CloseIf\n";
+	print_next_label(std::string(LABEL).append(to_string<int>(lc_save.top() + 1)));
+	lc_save.pop();
+}
 |
-T_ELSE Statement {rules<<"CloseIf\n";}
+T_ELSE
+{
+	int t = lc_save.top();
+	print_tac(std::string("goto ").append(LABEL).append(to_string<int>(t + 2)).append("\n"));  //close the if block
+	print_next_label(std::string(LABEL).append(to_string<int>(t + 1)));
+}Statement {
+	//print_tac(std::string("goto ").append(LABEL).append(to_string<int>(++lc)).append("\n"));
+	print_next_label(std::string(LABEL).append(to_string<int>(lc_save.top() + 2)));
+	lc_save.pop();
+	rules<<"CloseIf\n";
+}
 ;
 
 Statements
@@ -666,7 +695,6 @@ Summand
 AddOp Term
 {
 	term_sgn = 1;
-std::cout<<"current_exp == "<<current_exp<<", et =="<<et<<std::endl;
 	print_multiplicand();
 	if (temp_exp > 2){
 		current_exp.append("\n");
@@ -1024,6 +1052,14 @@ void print_label(const std::string s){
 	tac<<std::string(ind++, '\t')<<s<<":\n";
 }
 
+void print_next_label(const std::string s){
+	if (ind > 0){
+		tac<<std::string(ind - 1, '\t')<<s<<":\n";
+	}else{
+		tac<<s<<":\n";
+	}
+}
+
 void print_tac(const std::string s){
 	tac<<std::string(ind, '\t')<<s;
 }
@@ -1186,7 +1222,6 @@ void print_multiplicand(void){
 			print_m_exp(Temp_Eq(++tmpc).append(term_sgn == 1 ? m_et : std::string("-").append(m_et)).append("\n"));
 			current_m_exps.append(current_m_exp);  //e.g. c := a * b; requiring 1 temporary
 			if (temp_exp == 2){
-std::cout<<"et == "<<et<<", Temp == "<<Temp()<<std::endl;
 				et.append(Temp());
 			}else{
 				print_exp_text(Temp());
@@ -1201,28 +1236,7 @@ std::cout<<"et == "<<et<<", Temp == "<<Temp()<<std::endl;
 	}
 	current_factor = "";
 }
-/*
-void print_negation(void){
-	if (temp_m_exp == 1){
-		print_exp_text(std::string("not ").append(current_factor));    //no multiplication required, print directly as part of the summand
-	}else if (temp_m_exp == 2){
-		if (temp_exp == 1){
-			print_exp(Temp_Eq(++tmpc).append(m_et).append("\n"));
-			print_exp_text(std::string("not ").append(Temp()));   //e.g. c := a * b; no temporary required
-		}else{
-			current_m_exps.append(current_m_exp);  //e.g. c := a * b; requiring 1 temporary
-			print_exp_text(Temp());
-		}
-	}else{     //temporary required, reverse sign of temporary if necessary
-		current_m_exps.append(current_m_exp);
-		if (term_sgn == -1){
-			print_m_exps(std::string(m_et).append(" := -").append(m_et).append("\n"));
-		}
-		print_exp_text(m_et);
-	}
-	current_factor = "";
-}
-*/
+
 void add_param(void){
 	tac<<current_exp;
 	current_exp = "";
