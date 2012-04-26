@@ -18,6 +18,7 @@
 #define YYERROR_VERBOSE 1
 #define FW 50
 #define FUNC_REF "funcall "
+#define PROC_CALL "call "
 #define SYM_OUTPUT "symtable.out"
 #define RULES_OUTPUT "rules.out"
 #define TAC_OUTPUT "a.txt"
@@ -51,7 +52,7 @@ bool temp_var, unop, lhs_unop;  //n_op: number of operators found in current exp
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, term_sgn, current_const, current_l, current_u, temp_exp, temp_m_exp, n_op;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
 std::string prog_name, current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, index_t, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop;  //tac output for current variable/expression
 std::stack<bool> temp_var_save;
-std::stack<std::string> func_ref, current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save, array_t;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
+std::stack<std::string> func_ref, current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save, prev_id_save, array_t;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
 std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, n_op_save, term_sgn_save;
 std::vector<std::string> current_argv, current_param;
 std::stack< std::vector<std::string> > func_param;
@@ -93,6 +94,7 @@ T_PROGRAM T_ID
 }
 CompoundStatement '.'
 {
+	print_tac("return\n");
 	rules<<"Program\n";
 }
 ;
@@ -326,7 +328,6 @@ T_ASSIGNMENT Expression
 	lhs_type = "";
 	exp_type = "";   //note: CORNER CASE "a[i] := b[j]" contains 4 addresses, hence require a temporary when represented in tac form
 	tac<<current_exp<<lhs_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
-//std::cout<<"LINE 322 PRINTING LHS_VAR:\n"<<lhs_var<<std::endl;
 	current_exp = "";
 	lhs_var = "";
 	if (lhs_unop && (unop || (temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2))){
@@ -359,6 +360,12 @@ ActualParameterList
 ')'
 {
 	restore_state(true);
+	for (size_t i = 0; i < current_param.size(); ++i){
+		print_tac(std::string("param ").append(current_param[i]).append("\n"));
+	}
+	current_param.clear();
+	print_tac(std::string(PROC_CALL).append(prev_id).append("\n"));
+	current_factor = Temp();
 	rules<<"ProcedureStatement\n";
 }
 ;
@@ -684,7 +691,7 @@ Variable
 |
 FunctionReference
 { //unop = true;  //note: with the current grammar using unop for function calls and params would be too complicated and error-prone
-	for (int i = 0; i < func_param.top().size(); ++i){ //print_tac(std::string("param ").append(func_param.top()[i]).append("\n"));
+	for (size_t i = 0; i < func_param.top().size(); ++i){
 		print_m_exps(std::string("param ").append(func_param.top()[i]).append("\n"));
 	}
 	func_param.pop();
@@ -728,7 +735,6 @@ FunctionReference
 :
 T_ID
 {
-//HEREHERE
 	if (!LookupId(current_scope, std::string("function ").append(prev_id), exp_type)){  // <-- must be a function
 		yyerror(std::string("invalid function reference: function '").append(prev_id).append("' is not defined").c_str());
 		++s_err;
@@ -1092,6 +1098,7 @@ void save_state(bool save_current_factor){
 	current_sgn_save.push(current_sgn);
 	temp_exp_save.push(temp_exp);
 	temp_m_exp_save.push(temp_m_exp);
+	prev_id_save.push(prev_id);
 	n_op_save.push(n_op);
 	term_sgn_save.push(term_sgn);
 }
@@ -1147,6 +1154,8 @@ void restore_state(bool recover_current_factor){
 	temp_exp_save.pop();
 	temp_m_exp = temp_m_exp_save.top();
 	temp_m_exp_save.pop();
+	prev_id = prev_id_save.top();
+	prev_id_save.pop();
 	n_op = n_op_save.top() + n_op;   //note: n_op is the total number of operations found in the entire expression
 	n_op_save.pop();
 	term_sgn = term_sgn_save.top();
