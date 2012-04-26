@@ -627,8 +627,6 @@ Factor
 {
 	temp_m_exp = 1;
 	m_et = current_factor;
-//DEBUG
-std::cout<<"m_et == "<<m_et<<std::endl;
 	current_m_exp = "";
 }
 Multiplicand
@@ -711,7 +709,7 @@ Expression
 	if (n_op == 0){  //constant or single variable
 		current_factor = et;
 	}else if (temp_exp == 2){  //only 1 operator in current expression
-		current_exp.append(Temp_Eq(++tmpc)).append(et).append("\n");
+		print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
 		current_factor = Temp();
 	}else{     //temporary variable required
 		current_factor = et;
@@ -832,11 +830,11 @@ Expression
 	vt = array_t.top();
 	array_t.pop();
 	if (unop){
-		current_exp.append(Temp_Eq(++tmpc)).append(et).append("\n");
+		print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
 		et = Temp();
 		unop = false;
 	}else if ((temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2)){  //note: in tac form [] operator can only have constant or 1 single variable as argument
-		current_exp.append(Temp_Eq(++tmpc)).append(et).append("\n");
+		print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
 		et = Temp();
 	}
 	if (!temp_var){
