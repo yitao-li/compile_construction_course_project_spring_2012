@@ -34,15 +34,15 @@ typedef struct id_attr{
 typedef struct scope{
 	std::map<std::string, id_attr> symt;
 	scope *p;
-	scope(void):p(NULL){
-		symt["integer"] = id_attr("integer", 0);    //predefined types
+	scope(void):p(NULL){    //predefined types
+		symt["integer"] = id_attr("integer", 0);
 		symt["typedef integer"] = id_attr("integer", 1);
 		symt["string"] = id_attr("string", 2);
 		symt["typedef string"] = id_attr("string", 3);
 		symt["boolean"] = id_attr("boolean", 4);
 		symt["typedef boolean"] = id_attr("boolean", 5);
-		symt["true"] = id_attr("true", 6);
-		symt["false"] = id_attr("false", 7);
+		symt["var true"] = id_attr("boolean", 6);     //"true" and "false" will first be recognized as variables
+		symt["var false"] = id_attr("boolean", 7);
 	}
 	scope(scope *_p):p(_p){}
 } scope;
@@ -50,7 +50,7 @@ typedef struct scope{
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
 bool temp_var, unop, lhs_unop;
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, current_sgn, term_sgn, current_const, current_l, current_u, temp_exp = 1, temp_m_exp = 1;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
-std::string prog_name, current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, index_t, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop;  //tac output for current variable/expression
+std::string prog_name, current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, index_t, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop = "";  //tac output for current variable/expression
 std::stack<bool> temp_var_save;
 std::stack<std::string> func_ref, current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save, prev_id_save, array_t;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
 std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, term_sgn_save;
@@ -329,6 +329,7 @@ T_ASSIGNMENT Expression
 	exp_type = "";   //note: CORNER CASE "a[i] := b[j]" contains 4 addresses, hence require a temporary when represented in tac form
 	tac<<current_exp<<lhs_var;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
 	current_exp = "";
+	current_relop = "";
 	lhs_var = "";
 	if (lhs_unop && (unop || (temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2))){
 		print_tac(Temp_Eq(++tmpc).append(et).append("\n"));
@@ -374,9 +375,24 @@ StructuredStatement
 :
 CompoundStatement {rules<<"StructuredStatement\n";}
 |
-T_IF Expression T_THEN Statement CloseIf {rules<<"StructuredStatement\n";}
+T_IF Expression
+{
+	if (unop){
+		print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
+		et = Temp();
+		unop = false;
+	}else if (current_relop == "" && ((temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2))){
+		print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
+		et = Temp();
+	}
+	tac<<current_exp;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
+//	std::cout<<"PRINT\n";
+	print_tac(current_relop == "" ? std::string("if ").append(et).append(" = true goto \n") : std::string("if ").append(et).append(" goto \n"));
+	current_relop = "";
+}
+T_THEN Statement CloseIf {rules<<"StructuredStatement\n";}
 |
-T_WHILE Expression T_DO Statement {rules<<"StructuredStatement\n";}
+T_WHILE Expression {current_relop = "";}T_DO Statement {rules<<"StructuredStatement\n";}
 |
 T_FOR T_ID
 {
@@ -386,7 +402,7 @@ T_FOR T_ID
 		++s_err;
 	}
 }
-T_ASSIGNMENT Expression T_TO Expression T_DO Statement {rules<<"StructuredStatement\n";}
+T_ASSIGNMENT Expression {current_relop = "";} T_TO Expression {current_relop = "";} T_DO Statement {rules<<"StructuredStatement\n";}
 ;
 
 CloseIf
@@ -885,6 +901,7 @@ ActualParameterList
 Expression
 {
 	add_param();
+	current_relop = "";
 }
 OptExpressions {rules<<"ActualParameterList\n";}
 ;
@@ -896,6 +913,7 @@ OptExpressions
 ',' Expression
 {
 	add_param();
+	current_relop = "";
 }
 OptExpressions {rules<<"OptExpressions\n";}
 ;
@@ -959,14 +977,14 @@ int UpdateType(scope *next_scope){
 	return 0;
 }
 
-int LookupId(scope *current_scope, const std::string name, std::string & type){
+int LookupId(scope *c, const std::string name, std::string & type){
 	std::map<std::string, id_attr>::iterator it;
-	while (current_scope){
-		if ( (it = current_scope -> symt.find(name)) != current_scope -> symt.end()){
+	while (c){
+		if ( (it = c -> symt.find(name)) != c -> symt.end()){
 			type = it -> second.type;
 			return 1;    //found
 		}
-		current_scope = current_scope -> p;
+		c = c -> p;
 	}
 	return 0;  //not found
 }
