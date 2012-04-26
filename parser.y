@@ -378,7 +378,6 @@ CompoundStatement {rules<<"StructuredStatement\n";}
 |
 T_IF Expression
 {
-//	std::string then = to_string<int>(++lc), next = to_string<int>(++lc);
 	if (unop){
 		print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
 		et = Temp();
@@ -399,7 +398,7 @@ T_THEN
 {
 	lc_save.push(lc);
 	print_tac(std::string("goto ").append(LABEL).append(to_string<int>(lc + 1)).append("\n"));   //goto else
-	print_next_label(std::string(LABEL).append(to_string<int>(lc)));  //label for if  //lc + 2: label for everything after if then else
+	print_next_label(std::string(LABEL).append(to_string<int>(lc)));  //label for then  //lc + 2: label for everything ekse after then and else
 	lc += 2;
 }Statement CloseIf
 {
@@ -434,7 +433,6 @@ T_ELSE
 	print_tac(std::string("goto ").append(LABEL).append(to_string<int>(t + 2)).append("\n"));  //close the if block
 	print_next_label(std::string(LABEL).append(to_string<int>(t + 1)));
 }Statement {
-	//print_tac(std::string("goto ").append(LABEL).append(to_string<int>(++lc)).append("\n"));
 	print_next_label(std::string(LABEL).append(to_string<int>(lc_save.top() + 2)));
 	lc_save.pop();
 	rules<<"CloseIf\n";

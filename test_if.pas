@@ -28,10 +28,16 @@ begin
 	r.b.a := r.b.a + 2;
 	b := b and b or b;
 	if b = true then b := false;
-	if b then b := b and b or b;
+	if b then b := false;
 	if z = "hello" then
 		begin
-			if z = "hello" then z := "if";
+			if z = "hello" then z := "if"
+			else
+				{begin}
+					z := "else";
+				{	m := m + 1;
+				end}
+			; 
 			m := 100 + 2 * 2 + 1;
 		end
 	else
