@@ -51,7 +51,7 @@ typedef struct scope{
 scope prog_scope, *current_scope = &prog_scope, *next_scope;
 bool temp_var, unop, lhs_unop;
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, lc = 0, current_sgn, term_sgn, current_const, current_l, current_u, temp_exp = 1, temp_m_exp = 1;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
-std::string prog_name, current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, index_t, current_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop = "";  //tac output for current variable/expression
+std::string prog_name, current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, index_t, current_var, for_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop = "";  //tac output for current variable/expression
 std::stack<bool> temp_var_save;
 std::stack<std::string> func_ref, current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save, prev_id_save, array_t;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
 std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, term_sgn_save, lc_save;
@@ -429,13 +429,36 @@ Statement
 |
 T_FOR T_ID
 {
-	std::string var_name(yytext_ptr);
-	if (!LookupId(current_scope, std::string("var ").append(var_name), exp_type)){
-		yyerror(std::string("variable ").append(var_name).append(" is not declared").c_str());
+	for_var = std::string(yytext_ptr);
+	if (!LookupId(current_scope, std::string("var ").append(for_var), exp_type)){
+		yyerror(std::string("variable ").append(for_var).append(" is not declared").c_str());
 		++s_err;
 	}
 }
-T_ASSIGNMENT Expression {current_relop = "";} T_TO Expression {current_relop = "";} T_DO Statement {rules<<"StructuredStatement\n";}
+T_ASSIGNMENT Expression {
+	get_exp();
+	print_tac(std::string(for_var).append(" := ").append(et).append("\n"));   //initialization
+	current_relop = "";
+} T_TO Expression
+{
+	print_next_label(std::string(LABEL).append(to_string<int>(++lc)));   //for loop condition
+	get_exp();
+	lc_save.push(lc);
+	print_tac(std::string("if ").append(for_var).append(" > ").append(et).append(" goto ").append(std::string(LABEL)).append(to_string<int>(++lc)).append("\n"));
+	current_relop = "";
+} T_DO
+{
+	++ind;
+}
+Statement
+{
+	--ind;
+	int t = lc_save.top();
+	lc_save.pop();
+	print_tac(std::string("goto ").append(std::string(LABEL)).append(to_string<int>(t)).append("\n"));
+	print_next_label(std::string(LABEL).append(to_string<int>(t+1)));
+	rules<<"StructuredStatement\n";
+}
 ;
 
 CloseIf
@@ -452,7 +475,7 @@ T_ELSE
 	int t = lc_save.top();
 	print_tac(std::string("goto ").append(LABEL).append(to_string<int>(t + 2)).append("\n"));  //close the if block
 	print_next_label(std::string(LABEL).append(to_string<int>(t + 1)));
-}Statement {
+}Statement{
 	print_next_label(std::string(LABEL).append(to_string<int>(lc_save.top() + 2)));
 	lc_save.pop();
 	rules<<"CloseIf\n";
@@ -1069,15 +1092,12 @@ std::string Temp_Eq(int c){
 }
 
 void print_label(const std::string s){
-	tac<<std::string(ind++, '\t')<<s<<":\n";
+	++ind;
+	tac<<s<<":\n";
 }
 
 void print_next_label(const std::string s){
-	if (ind > 0){
-		tac<<std::string(ind - 1, '\t')<<s<<":\n";
-	}else{
-		tac<<s<<":\n";
-	}
+	tac<<s<<":\n";
 }
 
 void print_tac(const std::string s){
