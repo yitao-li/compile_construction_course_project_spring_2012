@@ -192,10 +192,13 @@ T_PROCEDURE T_ID
 	current_id_attr.type = "";
 	current_id_attr.field_list.clear();
 	argc = 0;
+	current_scope = next_scope;
+	next_scope = NULL;
 }')' ';' DeclarationBody
 {
 	print_tac("return\n\n");
 	--ind;
+	current_scope = current_scope -> p;
 	rules<<"ProcedureDeclaration\n";
 }
 ;
@@ -213,10 +216,13 @@ T_FUNCTION T_ID
 	current_id_attr.type = "";
 	current_id_attr.field_list.clear();
 	argc = 0;
+	current_scope = next_scope;
+	next_scope = NULL;
 }';' DeclarationBody
 {
 	print_tac(std::string("funreturn ").append(current_ret).append("\n\n"));
 	--ind;
+	current_scope = current_scope -> p;
 	rules<<"FunctionDeclaration\n";
 }
 ;
@@ -230,6 +236,7 @@ Block
 |
 T_FORWARD
 {
+	print_tac("forward\t\t ;; note: forward declaration is not handled in this project\n");
 	rules<<"DeclarationBody\n";
 }
 ;
@@ -262,19 +269,15 @@ OptIdentifiers {rules<<"OptIdentifiers\n";}
 Block
 :
 {
-	current_scope = next_scope;
-	next_scope = NULL;
 }
 CompoundStatement
 {
 	rules<<"Block\n";
-	current_scope = current_scope -> p;
 }
 |
 VariableDeclarations CompoundStatement
 {
 	rules<<"Block\n";
-	current_scope = current_scope -> p;
 }
 ;
 
@@ -532,14 +535,6 @@ FieldList /* assuming FieldList is only used in record declarations */
 /* empty */ {rules<<"FieldList\n";}
 |
 IdentifierList ':' Type {
-/*
-	for (int i = 0; i < current_argc; ++i){
-		current_id_attr.field_list[current_argv[i]] = type;  //entry for type of field in symbol table, note: use typename here
-		current_id_attr.type.append(LookupTypeDef(type)).append(",");
-	}
-	current_argv.clear();
-	current_argc = 0;
-*/
 	UpdateType(NULL);
 }
 OptIdentifiers {rules<<"FieldList\n";}
