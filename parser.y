@@ -69,7 +69,7 @@ inline std::string to_string (const T & t){
 
 int yyerror(const char *), UpdateVar(void), UpdateType(scope *), LookupId(scope *, const std::string, std::string &);
 std::string LookupTypeDef(const std::string), Temp(void), Temp(int), Temp_Eq(void), Temp_Eq(int);
-void print_label(const std::string), print_next_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_m_exps(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string), save_state(bool), restore_state(bool), print_multiplicand(void), add_param(void);
+void print_label(const std::string), print_next_label(const std::string), print_tac(const std::string), print_var(const std::string), print_exp(const std::string), print_m_exp(const std::string), print_m_exps(const std::string), print_exp_text(const std::string), print_addop(const std::string), print_mulop(const std::string), save_state(bool), restore_state(bool), print_multiplicand(void), add_param(void), get_exp(void);
 
 /*, print_m_exp_text(const std::string), print_exp_text(void), print_m_exp_text(void)*/
 
@@ -378,15 +378,7 @@ CompoundStatement {rules<<"StructuredStatement\n";}
 |
 T_IF Expression
 {
-	if (unop){
-		print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
-		et = Temp();
-		unop = false;
-	}else if (current_relop == "" && ((temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2))){
-		print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
-		et = Temp();
-	}
-	tac<<current_exp;    //evaluate the right-hand side, get the left-hand side, and then perform the ':=' operator
+	get_exp();
 	if (current_relop == ""){
 		print_tac(std::string("if ").append(et).append(" = true goto ").append(LABEL).append(to_string<int>(++lc)).append("\n"));
 	}else{
@@ -405,7 +397,32 @@ T_THEN
 	rules<<"StructuredStatement\n";
 }
 |
-T_WHILE Expression {current_relop = "";}T_DO Statement {rules<<"StructuredStatement\n";}
+T_WHILE Expression
+{
+	print_next_label(std::string(LABEL).append(to_string<int>(++lc)));
+	get_exp();
+	if (current_relop == ""){
+		print_tac(std::string("if ").append(et).append(" = true goto ").append(LABEL).append(to_string<int>(lc + 1)).append("\n"));
+	}else{
+		print_tac(std::string("if ").append(et).append(" goto ").append(LABEL).append(to_string<int>(lc + 1)).append("\n"));
+	}
+	current_relop = "";
+}
+T_DO
+{
+	lc_save.push(lc);   //label for while
+	print_tac(std::string("goto ").append(LABEL).append(to_string<int>(lc + 2)).append("\n"));   //exit the while loop
+	print_next_label(std::string(LABEL).append(to_string<int>(lc + 1)));
+	lc += 2;
+}
+Statement
+{
+	int t = lc_save.top();
+	lc_save.pop();
+	print_tac(std::string("goto ").append(LABEL).append(to_string<int>(t)).append("\n"));
+	print_next_label(std::string(LABEL).append(to_string<int>(t + 2)));
+	rules<<"StructuredStatement\n";
+}
 |
 T_FOR T_ID
 {
@@ -526,12 +543,14 @@ SimpleExpression
 |
 SimpleExpression
 {
+	get_exp();
 	_et = et;
 	_current_exp = current_exp; //et = "";
 }
 RelationalOp
 SimpleExpression
 {
+	get_exp();
 	current_exp = _current_exp.append(current_exp);
 	et = _et.append(" ").append(current_relop).append(" ").append(et);
 	temp_exp = 2;
@@ -760,7 +779,7 @@ Expression
 	exp_type = "";
 	if (temp_exp == 1 && temp_m_exp == 1){  //constant or single variable
 		current_factor = et;
-	}else if (temp_exp == 2){  //only 1 operator in current expression
+	}else if (temp_exp == 2 || (temp_exp == 1 && temp_m_exp == 2)){  //only 1 operator in current expression
 		print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
 		current_factor = Temp();
 	}else{     //temporary variable required
@@ -1081,13 +1100,15 @@ void print_m_exps(const std::string s){
 void print_addop(const std::string op){
 	if (temp_exp < 2){
 		if (unop || (temp_m_exp == 2)){   //note: temp_m_exp may only need to be boolean?
-			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
+			print_m_exps(Temp_Eq(++tmpc).append(et).append("\n"));
 			et = Temp();
 		}
 		et.append(op);
 	}else{
-		if (unop || temp_exp == 2 || temp_m_exp == 2){
+		if (unop || temp_exp == 2){
 			print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
+		}else if (temp_exp == 1 && temp_m_exp == 2){
+			print_m_exps(Temp_Eq(++tmpc).append(et).append("\n"));
 		}
 		print_exp(Temp_Eq(tmpc + 1).append(Temp()).append(op));
 		et = Temp(++tmpc);
@@ -1099,13 +1120,13 @@ void print_addop(const std::string op){
 void print_mulop(const std::string op){
 	if (temp_m_exp < 2){
 		if (unop){
-			print_exp(Temp_Eq(++tmpc).append(m_et).append("\n"));
+			print_m_exps(Temp_Eq(++tmpc).append(m_et).append("\n"));
 			m_et = Temp();
 		}
 		m_et.append(op);
 	}else{
 		if (unop || (temp_m_exp == 2)){
-			print_m_exp(Temp_Eq(++tmpc).append(m_et).append("\n"));
+			print_m_exps(Temp_Eq(++tmpc).append(m_et).append("\n"));
 		}
 		print_m_exp(Temp_Eq(tmpc + 1).append(Temp()).append(op));
 		m_et = Temp(++tmpc);
@@ -1247,6 +1268,18 @@ void add_param(void){
 		current_param.push_back(et);   //print_tac(std::string("param ").append(et).append("\n"));
 	}
 	et = "";
+}
+
+void get_exp(void){
+	if (unop){
+		print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
+		et = Temp();
+		unop = false;
+	}else if (current_relop == "" && ((temp_exp == 2) || (temp_exp == 1 && temp_m_exp == 2))){
+		print_exp(Temp_Eq(++tmpc).append(et).append("\n"));
+		et = Temp();
+	}
+	tac<<current_exp;
 }
 
 int main(void){
