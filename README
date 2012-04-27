@@ -23,8 +23,7 @@ cat rules.out
 
     1. Conflicts: 1 shift/reduce, 1 reduce/reduce
 
-    2. The current symbol table does not have any name-mangling features (to be added
-       in the foreseeable future).
+    2. The current symbol table does not have any name-mangling features (perhaps to be added in the foreseeable future).
 
     3. The current version only checks for type mismatch in simple assignment operations (i.e. assignment in the form of "a := b") but does not check for
        type mismatch in assignment of the form "a := b + c" (since specific language-dependent rules are needed to determine the type of the right-hand side
@@ -32,6 +31,7 @@ cat rules.out
 
     4. Many other things such as division by 0 are not handled yet (not part of the project though)
 
-    5. function reference is not completely working
+    5. Assuming all for loop have step size +1, and also because the for ? = ? to ? in PASCAL already implies an increment, an instruction in the form of
+       ? := ? + 1 will be automatically printed in the TAC)
        
 */

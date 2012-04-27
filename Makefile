@@ -27,4 +27,4 @@ $(EXECUTABLE): $(SOURCES:.l=.h) $(SOURCES:.y=.o)
 	$(BISON) $(BISON_FLAGS) $< && $(CC) $(CFLAGS) $(BISON_OUTPUT_C)
 
 clean:
-	rm *.o *.out *.output $(FLEX_OUTPUT) $(BISON_OUTPUT_C) $(BISON_OUTPUT_H) $(EXECUTABLE)
+	rm *.o *.out *.output a.txt $(FLEX_OUTPUT) $(BISON_OUTPUT_C) $(BISON_OUTPUT_H) $(EXECUTABLE)

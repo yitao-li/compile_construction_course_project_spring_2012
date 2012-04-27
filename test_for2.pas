@@ -16,7 +16,7 @@ function foo(x : integer) : integer; forward;
 procedure bar(x : int); forward;
 
 begin
-	for i := 0 to 1 + 1do
+	for i := 0 to 1 + 1 do
 		begin
 			i := i + 2;
 			bar(i + 3 * 4);

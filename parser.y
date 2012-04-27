@@ -53,7 +53,7 @@ bool temp_var, unop, lhs_unop;
 int argc = 0, current_argc = 0, s_err = 0, ind = 0, tmpc = 0, lc = 0, current_sgn, term_sgn, current_const, current_l, current_u, temp_exp = 1, temp_m_exp = 1;  //l/u:  array lower/upper bounds  //reg: indicating which register to use
 std::string prog_name, current_id, current_ret, type, current_typename, exp_type, lhs_type, ret_type, vt, index_t, current_var, for_var, lhs_vt, lhs_var, current_factor, et, _et, m_et, current_exp, _current_exp, current_m_exp, current_m_exps, tmp_exp, current_relop = "";  //tac output for current variable/expression
 std::stack<bool> temp_var_save;
-std::stack<std::string> func_ref, current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save, prev_id_save, array_t;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
+std::stack<std::string> func_ref, current_id_save, current_ret_save, type_save, current_typename_save, exp_type_save, lhs_type_save, ret_type_save, vt_save, current_var_save, lhs_vt_save, lhs_var_save, current_factor_save, et_save, _et_save, m_et_save, current_exp_save, _current_exp_save, current_m_exp_save, current_m_exps_save, current_relop_save, prev_id_save, array_t, for_var_save;  //stacks are required for nested '(' Expression ')' s and '[' Expression ']' s
 std::stack<int> current_sgn_save, temp_exp_save, temp_m_exp_save, term_sgn_save, lc_save;
 std::vector<std::string> current_argv, current_param;
 std::stack< std::vector<std::string> > func_param;
@@ -433,6 +433,7 @@ Statement
 T_FOR T_ID
 {
 	for_var = std::string(yytext_ptr);
+	for_var_save.push(for_var);
 	if (!LookupId(current_scope, std::string("var ").append(for_var), exp_type)){
 		yyerror(std::string("variable ").append(for_var).append(" is not declared").c_str());
 		++s_err;
@@ -455,9 +456,12 @@ T_ASSIGNMENT Expression {
 }
 Statement
 {
-	--ind;
 	int t = lc_save.top();
+	std::string v = for_var_save.top();
 	lc_save.pop();
+	for_var_save.pop();
+	print_tac(std::string(v).append(" := ").append(v).append(" + 1\n"));
+	--ind;
 	print_tac(std::string("goto ").append(std::string(LABEL)).append(to_string<int>(t)).append("\n"));
 	print_next_label(std::string(LABEL).append(to_string<int>(t+1)));
 	rules<<"StructuredStatement\n";
@@ -776,7 +780,7 @@ FunctionReference
 		print_m_exps(std::string("param ").append(func_param.top()[i]).append("\n"));
 	}
 	func_param.pop();
-	print_exp(Temp_Eq(++tmpc).append(FUNC_REF).append(func_ref.top()).append("\n"));
+	print_m_exps(Temp_Eq(++tmpc).append(FUNC_REF).append(func_ref.top()).append("\n"));
 	current_factor = Temp();
 	func_ref.pop();
 	rules<<"Factor\n";
@@ -1298,6 +1302,7 @@ void get_exp(void){
 		et = Temp();
 	}
 	tac<<current_exp;
+	current_exp = "";
 }
 
 int main(void){
