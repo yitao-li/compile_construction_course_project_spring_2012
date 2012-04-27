@@ -378,8 +378,8 @@ CompoundStatement {rules<<"StructuredStatement\n";}
 |
 T_IF Expression
 {
-	get_exp();
 	if (current_relop == ""){
+		get_exp();
 		print_tac(std::string("if ").append(et).append(" = true goto ").append(LABEL).append(to_string<int>(++lc)).append("\n"));
 	}else{
 		print_tac(std::string("if ").append(et).append(" goto ").append(LABEL).append(to_string<int>(++lc)).append("\n"));
@@ -397,11 +397,14 @@ T_THEN
 	rules<<"StructuredStatement\n";
 }
 |
-T_WHILE Expression
+T_WHILE
 {
 	print_next_label(std::string(LABEL).append(to_string<int>(++lc)));
-	get_exp();
+}
+Expression
+{
 	if (current_relop == ""){
+		get_exp();
 		print_tac(std::string("if ").append(et).append(" = true goto ").append(LABEL).append(to_string<int>(lc + 1)).append("\n"));
 	}else{
 		print_tac(std::string("if ").append(et).append(" goto ").append(LABEL).append(to_string<int>(lc + 1)).append("\n"));

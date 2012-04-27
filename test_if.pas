@@ -27,16 +27,17 @@ begin
 	if r.b.a = 100 + 2 * 2 + 1 then r.b.a := 0;
 	r.b.a := r.b.a + 2;
 	b := b and b or b;
+	if 3 + 1 = 2 + 2 * 0 + 2 then b := true;
 	if b = true then b := false;
 	if b then b := false;
 	if z = "hello" then
 		begin
 			if z = "hello" then z := "if"
 			else
-				{begin}
+				begin
 					z := "else";
-				{	m := m + 1;
-				end}
+					m := m + 1;
+				end
 			; 
 			m := 100 + 2 * 2 + 1;
 		end
