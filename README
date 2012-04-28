@@ -33,5 +33,7 @@ cat rules.out
 
     5. Assuming all for loop have step size +1, and also because the for ? = ? to ? in PASCAL already implies an increment, an instruction in the form of
        ? := ? + 1 will be automatically printed in the TAC)
-       
+
+    6. A test case that failed was component selections in the form of c.d[e]
+    
 */
